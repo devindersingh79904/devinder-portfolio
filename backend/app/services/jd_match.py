@@ -9,7 +9,7 @@ from app.repositories.queries import jd_query_repo
 def normalize_text(text: str) -> str:
     return text.lower().strip()
 
-def calculate_jd_match(db: Session, query: JDQueryCreate) -> JDMatchResult:
+def calculate_jd_match(db: Session, query: JDQueryCreate, ip_address: str = None, user_agent: str = None) -> JDMatchResult:
     # 1. Fetch all skills from DB
     all_skills = skill_repo.get_multi(db, limit=1000, filters={"is_active": True})
     known_skills = {normalize_text(s.name): s for s in all_skills}
@@ -64,21 +64,41 @@ def calculate_jd_match(db: Session, query: JDQueryCreate) -> JDMatchResult:
     total_score = skill_score_pct + exp_score_pct + cert_score_pct
     
     # Build Result
+    match_score = round(total_score, 1)
+    matched = matched_skills
+    missing = missing_skills
+    weak = []
+    relevant_projects = relevant_projects[:3]
+    relevant_experience = relevant_experiences[:3]
+    summary = f"Score is {match_score}/100 based on {len(matched_skills)} matched skills."
+    
     result = JDMatchResult(
-        matchScore=round(total_score, 1),
-        matchedSkills=matched_skills,
-        missingSkills=missing_skills,
-        weakSkills=[], # Hard to determine without more complex AI, leaving empty for MVP
-        relevantProjects=relevant_projects[:3], # Top 3
-        relevantExperience=relevant_experiences[:3], # Top 3
-        summary=f"Score is {round(total_score, 1)}/100 based on {len(matched_skills)} matched skills."
+        matchScore=match_score,
+        matchedSkills=matched,
+        missingSkills=missing,
+        weakSkills=weak,
+        relevantProjects=relevant_projects,
+        relevantExperience=relevant_experience,
+        summary=summary
     )
     
-    # Save Query
+    # 4. Save Query and Result to DB
     jd_query_repo.create(db, obj_in={
-        "query_text": query.jd_text,
-        "match_score": result.matchScore,
-        "result_json": result.model_dump()
+        "hr_name": query.hr_name,
+        "hr_email": query.hr_email,
+        "company_name": query.company_name,
+        "role_title": query.role_title,
+        "jd_text": query.jd_text,
+        "match_score": match_score,
+        "matched_skills": matched,
+        "missing_skills": missing,
+        "weak_skills": weak,
+        "relevant_projects": relevant_projects,
+        "relevant_experience": relevant_experience,
+        "summary": summary,
+        "result_json": result.model_dump(),
+        "ip_address": ip_address,
+        "user_agent": user_agent
     })
     
     return result

@@ -1,19 +1,48 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/services/api'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 
 export function AdminProfile() {
   const queryClient = useQueryClient()
   const [file, setFile] = useState<File | null>(null)
-  const [uploadMsg, setUploadMsg] = useState('')
+
+  const { register, handleSubmit, reset } = useForm()
 
   const { data: profileResp, isLoading } = useQuery({
     queryKey: ['admin-profile'],
     queryFn: () => apiClient.get('/admin/profile')
+  })
+  const profile = profileResp?.data
+
+  useEffect(() => {
+    if (profile) {
+      reset({
+        full_name: profile.full_name,
+        headline: profile.headline,
+        summary: profile.summary,
+        location: profile.location,
+        email: profile.email,
+        phone: profile.phone,
+        linkedin_url: profile.linkedin_url,
+        github_url: profile.github_url
+      })
+    }
+  }, [profile, reset])
+
+  const profileMutation = useMutation({
+    mutationFn: (data: any) => apiClient.put('/admin/profile', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-profile'] })
+      toast.success('Profile details updated successfully!')
+    },
+    onError: () => toast.error('Failed to update profile details')
   })
 
   const uploadMutation = useMutation({
@@ -22,15 +51,13 @@ export function AdminProfile() {
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-profile'] })
-      setUploadMsg('Resume uploaded successfully!')
+      toast.success('Resume uploaded successfully!')
       setFile(null)
     },
     onError: (err: any) => {
-      setUploadMsg(err.message || 'Failed to upload resume')
+      toast.error(err.message || 'Failed to upload resume')
     }
   })
-
-  const profile = profileResp?.data
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -46,11 +73,62 @@ export function AdminProfile() {
     uploadMutation.mutate(formData)
   }
 
-  if (isLoading) return <div>Loading...</div>
+  const onProfileSubmit = (data: any) => {
+    profileMutation.mutate(data)
+  }
+
+  if (isLoading) return <div className="p-8">Loading profile...</div>
 
   return (
     <div className="space-y-8">
       <h1 className="text-4xl font-bold">Profile & Resume Management</h1>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onProfileSubmit)} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="full_name">Full Name</Label>
+                <Input id="full_name" {...register('full_name')} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="headline">Headline</Label>
+                <Input id="headline" {...register('headline')} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" {...register('email')} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input id="phone" {...register('phone')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input id="location" {...register('location')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="linkedin_url">LinkedIn URL</Label>
+                <Input id="linkedin_url" {...register('linkedin_url')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="github_url">GitHub URL</Label>
+                <Input id="github_url" {...register('github_url')} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="summary">Summary</Label>
+              <Textarea id="summary" {...register('summary')} className="min-h-[100px]" />
+            </div>
+            <Button type="submit" disabled={profileMutation.isPending}>
+              {profileMutation.isPending ? 'Saving...' : 'Save Profile Changes'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -89,12 +167,6 @@ export function AdminProfile() {
                 {uploadMutation.isPending ? 'Uploading...' : 'Upload & Replace'}
               </Button>
             </div>
-            
-            {uploadMsg && (
-              <p className={`text-sm ${uploadMsg.includes('successfully') ? 'text-green-600' : 'text-red-600'}`}>
-                {uploadMsg}
-              </p>
-            )}
           </form>
         </CardContent>
       </Card>

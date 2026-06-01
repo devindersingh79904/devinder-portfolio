@@ -15,6 +15,8 @@ Built with **FastAPI**, **PostgreSQL**, **React**, **Vite**, **Tailwind CSS**, a
 
 ## Environment Variables (.env)
 
+> **Note:** `.env` files are explicitly ignored in `.gitignore` to prevent sensitive credentials from leaking into source control.
+
 You must create a `.env` file in the `backend/` directory:
 
 ```env
@@ -52,9 +54,8 @@ VITE_API_BASE_URL=http://localhost:8000/api/v1
    ```bash
    pip install -r requirements.txt
    ```
-4. Run Alembic migrations to initialize the database tables:
+4. Run Alembic migrations to initialize the database tables. We have exactly specified the initial schema in `001_initial_schema.py`:
    ```bash
-   alembic revision --autogenerate -m "Initial schema"
    alembic upgrade head
    ```
 5. Seed the initial admin user:

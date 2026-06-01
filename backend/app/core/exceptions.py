@@ -52,6 +52,6 @@ async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
     return build_error_response("Database Error", errors, 500)
 
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unexpected error: {str(exc)}", exc_info=True)
+    logger.error(f"Unexpected error: {str(exc)}")
     errors = [{"message": Messages.INTERNAL_ERROR, "code": ErrorCodes.INTERNAL_SERVER_ERROR}]
     return build_error_response(Messages.INTERNAL_ERROR, errors, 500)

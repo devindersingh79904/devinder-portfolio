@@ -4,38 +4,54 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 export function AdminDashboard() {
-  const { data: queriesResp } = useQuery({
-    queryKey: ['jd-queries'],
-    queryFn: () => apiClient.get('/admin/jd-queries')
+  const { data: statsResp, isLoading } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: () => apiClient.get('/admin/dashboard/stats')
   })
 
-  const { data: leadsResp } = useQuery({
-    queryKey: ['contact-leads'],
-    queryFn: () => apiClient.get('/admin/contact-leads')
-  })
+  if (isLoading) {
+    return <div>Loading dashboard...</div>
+  }
 
-  const queries = queriesResp?.data?.content || []
-  const leads = leadsResp?.data?.content || []
+  const stats = statsResp?.data || {}
+  const queries = stats.recent_jd_queries || []
+  const leads = stats.recent_contact_leads || []
 
   return (
     <div className="space-y-8">
       <h1 className="text-4xl font-bold">Dashboard</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Total JD Queries</CardTitle>
+            <CardTitle>JD Queries</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-5xl font-extrabold text-primary">{queriesResp?.data?.totalElements || 0}</div>
+            <div className="text-5xl font-extrabold text-primary">{stats.total_jd_queries || 0}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Total Contact Leads</CardTitle>
+            <CardTitle>Avg Match Score</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-5xl font-extrabold text-primary">{leadsResp?.data?.totalElements || 0}</div>
+            <div className="text-5xl font-extrabold text-primary">{stats.average_match_score || 0}%</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Contact Leads</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-5xl font-extrabold text-primary">{stats.total_contact_leads || 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Resume Downloads</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-5xl font-extrabold text-primary">{stats.total_resume_downloads || 0}</div>
           </CardContent>
         </Card>
       </div>
@@ -47,21 +63,23 @@ export function AdminDashboard() {
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
+                <TableHead>HR / Company</TableHead>
                 <TableHead>Query Summary</TableHead>
                 <TableHead>Match Score</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {queries.slice(0, 5).map((q: any) => (
+              {queries.map((q: any) => (
                 <TableRow key={q.id}>
                   <TableCell>{new Date(q.created_at).toLocaleDateString()}</TableCell>
-                  <TableCell className="max-w-md truncate">{q.query_text}</TableCell>
+                  <TableCell>{q.hr_name} @ {q.company_name}</TableCell>
+                  <TableCell className="max-w-md truncate">{q.jd_text}</TableCell>
                   <TableCell className="font-bold text-primary">{q.match_score}%</TableCell>
                 </TableRow>
               ))}
               {queries.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">No queries yet</TableCell>
+                  <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">No queries yet</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -81,7 +99,7 @@ export function AdminDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {leads.slice(0, 5).map((l: any) => (
+              {leads.map((l: any) => (
                 <TableRow key={l.id}>
                   <TableCell>{new Date(l.created_at).toLocaleDateString()}</TableCell>
                   <TableCell>{l.name} ({l.email})</TableCell>

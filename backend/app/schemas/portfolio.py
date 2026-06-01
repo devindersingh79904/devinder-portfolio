@@ -6,11 +6,16 @@ from uuid import UUID
 class ORMBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+# -----------------
+# SKILLS
+# -----------------
 class SkillBase(ORMBase):
     name: str
     category: str
-    is_active: bool = True
+    proficiency: Optional[int] = None
+    years_of_experience: Optional[int] = None
     display_order: int = 0
+    is_active: bool = True
 
 class SkillCreate(SkillBase):
     pass
@@ -21,94 +26,129 @@ class SkillUpdate(SkillBase):
 
 class SkillOut(SkillBase):
     id: UUID
-    
+
+# -----------------
+# PROJECTS
+# -----------------
 class ProjectBase(ORMBase):
     title: str
-    description: str
-    link: Optional[str] = None
+    short_description: Optional[str] = None
+    detailed_description: Optional[str] = None
+    problem_solved: Optional[str] = None
+    tech_stack: Optional[Dict[str, Any]] = None
+    features: Optional[Dict[str, Any]] = None
+    github_url: Optional[str] = None
+    live_url: Optional[str] = None
+    demo_url: Optional[str] = None
+    architecture_url: Optional[str] = None
+    display_order: int = 0
     is_featured: bool = False
     is_active: bool = True
-    display_order: int = 0
 
 class ProjectCreate(ProjectBase):
     pass
-    
+
 class ProjectUpdate(ProjectBase):
     title: Optional[str] = None
-    description: Optional[str] = None
 
 class ProjectOut(ProjectBase):
     id: UUID
 
+# -----------------
+# EXPERIENCE
+# -----------------
 class ExperienceBase(ORMBase):
-    company: str
+    company_name: str
     role: str
-    description: str
+    location: Optional[str] = None
     start_date: date
     end_date: Optional[date] = None
-    is_active: bool = True
+    is_current: bool = False
+    summary: Optional[str] = None
+    tech_stack: Optional[Dict[str, Any]] = None
+    achievements: Optional[Dict[str, Any]] = None
     display_order: int = 0
+    is_active: bool = True
 
 class ExperienceCreate(ExperienceBase):
     pass
 
 class ExperienceUpdate(ExperienceBase):
-    company: Optional[str] = None
+    company_name: Optional[str] = None
     role: Optional[str] = None
-    description: Optional[str] = None
     start_date: Optional[date] = None
 
 class ExperienceOut(ExperienceBase):
     id: UUID
 
+# -----------------
+# EDUCATION
+# -----------------
 class EducationBase(ORMBase):
+    institution_name: str
     degree: str
-    institution: str
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
-    is_active: bool = True
+    field_of_study: Optional[str] = None
+    start_year: Optional[int] = None
+    end_year: Optional[int] = None
+    grade: Optional[str] = None
+    description: Optional[str] = None
     display_order: int = 0
+    is_active: bool = True
 
 class EducationCreate(EducationBase):
     pass
 
 class EducationUpdate(EducationBase):
+    institution_name: Optional[str] = None
     degree: Optional[str] = None
-    institution: Optional[str] = None
 
 class EducationOut(EducationBase):
     id: UUID
 
+# -----------------
+# CERTIFICATIONS
+# -----------------
 class CertificationBase(ORMBase):
-    name: str
+    title: str
     issuer: str
-    link: Optional[str] = None
-    date_issued: Optional[date] = None
-    is_active: bool = True
+    issue_date: Optional[date] = None
+    expiry_date: Optional[date] = None
+    credential_id: Optional[str] = None
+    credential_url: Optional[str] = None
+    skills: Optional[Dict[str, Any]] = None
     display_order: int = 0
+    is_active: bool = True
 
 class CertificationCreate(CertificationBase):
     pass
 
 class CertificationUpdate(CertificationBase):
-    name: Optional[str] = None
+    title: Optional[str] = None
     issuer: Optional[str] = None
 
 class CertificationOut(CertificationBase):
     id: UUID
 
+# -----------------
+# PROFILE
+# -----------------
 class ProfileBase(ORMBase):
-    name: str
-    title: str
-    bio: Optional[str] = None
+    full_name: str
+    headline: str
+    summary: Optional[str] = None
+    location: Optional[str] = None
     email: str
+    phone: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    profile_image_url: Optional[str] = None
 
 class ProfileCreate(ProfileBase):
     pass
 
 class ProfileUpdate(ProfileBase):
-    name: Optional[str] = None
-    title: Optional[str] = None
+    full_name: Optional[str] = None
+    headline: Optional[str] = None
     email: Optional[str] = None
 
 class ProfileOut(ProfileBase):
@@ -117,6 +157,9 @@ class ProfileOut(ProfileBase):
     resume_file_name: Optional[str] = None
     resume_updated_at: Optional[datetime] = None
 
+# -----------------
+# CONTACT LEADS
+# -----------------
 class ContactLeadCreate(BaseModel):
     name: str
     email: str
@@ -127,7 +170,11 @@ class ContactLeadCreate(BaseModel):
 class ContactLeadOut(ContactLeadCreate, ORMBase):
     id: UUID
     created_at: datetime
+    source: Optional[str] = None
 
+# -----------------
+# JD QUERIES
+# -----------------
 class JDQueryCreate(BaseModel):
     hr_name: Optional[str] = None
     hr_email: Optional[str] = None
@@ -146,7 +193,23 @@ class JDMatchResult(BaseModel):
 
 class JDQueryOut(ORMBase):
     id: UUID
-    query_text: str
+    hr_name: Optional[str] = None
+    hr_email: Optional[str] = None
+    company_name: Optional[str] = None
+    role_title: Optional[str] = None
+    jd_text: str
     match_score: float
-    result_json: JDMatchResult
+    result_json: Optional[JDMatchResult] = None
+    created_at: datetime
+
+# -----------------
+# ANALYTICS
+# -----------------
+class AnalyticsEventCreate(BaseModel):
+    event_type: str
+    page_url: Optional[str] = None
+    metadata_json: Optional[Dict[str, Any]] = None
+
+class AnalyticsEventOut(AnalyticsEventCreate, ORMBase):
+    id: UUID
     created_at: datetime

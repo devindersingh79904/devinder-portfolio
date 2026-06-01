@@ -25,14 +25,33 @@ export function PublicProjects() {
           <Card key={p.id}>
             <CardHeader>
               <CardTitle>{p.title}</CardTitle>
-              <CardDescription>{p.description}</CardDescription>
+              <CardDescription>{p.short_description}</CardDescription>
             </CardHeader>
-            <CardContent>
-              {p.link && (
-                <Button variant="link" className="p-0" asChild>
-                  <a href={p.link} target="_blank" rel="noreferrer">View Project &rarr;</a>
-                </Button>
+            <CardContent className="space-y-4">
+              {p.tech_stack && typeof p.tech_stack === 'object' && Object.keys(p.tech_stack).length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {Object.keys(p.tech_stack).map((tech: string) => (
+                      <span key={tech} className="px-2 py-1 bg-secondary text-secondary-foreground rounded text-xs">{tech}</span>
+                    ))}
+                  </div>
               )}
+              <div className="flex gap-4">
+                {p.live_url && (
+                  <Button variant="link" className="p-0" asChild>
+                    <a href={p.live_url} target="_blank" rel="noreferrer">Live Demo &rarr;</a>
+                  </Button>
+                )}
+                {p.github_url && (
+                  <Button variant="link" className="p-0 text-muted-foreground" asChild>
+                    <a href={p.github_url} target="_blank" rel="noreferrer">GitHub</a>
+                  </Button>
+                )}
+                {p.architecture_url && (
+                  <Button variant="link" className="p-0 text-muted-foreground" asChild>
+                    <a href={p.architecture_url} target="_blank" rel="noreferrer">Architecture</a>
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}

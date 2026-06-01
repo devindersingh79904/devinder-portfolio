@@ -17,14 +17,15 @@ from app.utils.pagination import build_pagination
 from app.routers.deps import get_current_admin
 from app.models.admin import AdminUser
 
-from app.schemas.admin import AdminLogin, Token
+from app.schemas.admin import AdminLogin, Token, DashboardStats
 from app.schemas.portfolio import (
     ProjectCreate, ProjectUpdate, ProjectOut,
     ExperienceCreate, ExperienceUpdate, ExperienceOut,
     EducationCreate, EducationUpdate, EducationOut,
     CertificationCreate, CertificationUpdate, CertificationOut,
     SkillCreate, SkillUpdate, SkillOut,
-    ProfileUpdate, ProfileOut
+    ProfileUpdate, ProfileOut,
+    JDQueryOut, ContactLeadOut
 )
 from app.repositories.portfolio import (
     project_repo, experience_repo, education_repo,
@@ -186,3 +187,27 @@ def export_jd_queries(db: Session = Depends(get_db), current_admin: AdminUser = 
         
     output.seek(0)
     return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=jd-queries.csv"})
+
+@router.get("/dashboard/stats", response_model=APIResponse[DashboardStats])
+def get_dashboard_stats(db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
+    from sqlalchemy import func
+    from app.models.queries import JDQuery
+    from app.models.analytics import AnalyticsEvent
+    
+    total_jd_queries = jd_query_repo.count(db)
+    avg_score_row = db.query(func.avg(JDQuery.match_score)).first()
+    average_match_score = float(avg_score_row[0]) if avg_score_row and avg_score_row[0] else 0.0
+    total_contact_leads = contact_lead_repo.count(db)
+    total_resume_downloads = db.query(AnalyticsEvent).filter(AnalyticsEvent.event_type == "RESUME_DOWNLOAD").count()
+    
+    recent_jd = jd_query_repo.get_multi(db, limit=5)
+    recent_leads = contact_lead_repo.get_multi(db, limit=5)
+    
+    return success_response(data=DashboardStats(
+        total_jd_queries=total_jd_queries,
+        average_match_score=round(average_match_score, 2),
+        total_contact_leads=total_contact_leads,
+        total_resume_downloads=total_resume_downloads,
+        recent_jd_queries=[JDQueryOut.model_validate(q) for q in recent_jd],
+        recent_contact_leads=[ContactLeadOut.model_validate(l) for l in recent_leads]
+    ).model_dump())

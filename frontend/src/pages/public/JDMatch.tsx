@@ -10,7 +10,10 @@ import { Helmet } from 'react-helmet-async'
 
 export function JDMatch() {
   const [jdText, setJdText] = useState('')
+  const [hrName, setHrName] = useState('')
+  const [hrEmail, setHrEmail] = useState('')
   const [company, setCompany] = useState('')
+  const [roleTitle, setRoleTitle] = useState('')
   
   const matchMutation = useMutation({
     mutationFn: (data: any) => apiClient.post('/jd-match', data)
@@ -21,7 +24,10 @@ export function JDMatch() {
     if (!jdText) return
     matchMutation.mutate({
       jd_text: jdText,
-      company_name: company
+      hr_name: hrName,
+      hr_email: hrEmail,
+      company_name: company,
+      role_title: roleTitle
     })
   }
 
@@ -41,14 +47,44 @@ export function JDMatch() {
       <Card>
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="company">Company Name (Optional)</Label>
-              <Input 
-                id="company" 
-                value={company} 
-                onChange={e => setCompany(e.target.value)} 
-                placeholder="e.g. Google"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="hrName">HR/Recruiter Name (Optional)</Label>
+                <Input 
+                  id="hrName" 
+                  value={hrName} 
+                  onChange={e => setHrName(e.target.value)} 
+                  placeholder="e.g. Jane Doe"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="hrEmail">HR/Recruiter Email (Optional)</Label>
+                <Input 
+                  id="hrEmail" 
+                  type="email"
+                  value={hrEmail} 
+                  onChange={e => setHrEmail(e.target.value)} 
+                  placeholder="e.g. jane@company.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company">Company Name (Optional)</Label>
+                <Input 
+                  id="company" 
+                  value={company} 
+                  onChange={e => setCompany(e.target.value)} 
+                  placeholder="e.g. Google"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="roleTitle">Role Title (Optional)</Label>
+                <Input 
+                  id="roleTitle" 
+                  value={roleTitle} 
+                  onChange={e => setRoleTitle(e.target.value)} 
+                  placeholder="e.g. Senior Frontend Engineer"
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="jd">Job Description *</Label>

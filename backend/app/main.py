@@ -17,6 +17,10 @@ from app.core.exceptions import (
 from app.schemas.common import APIResponse
 from app.routers import public, admin
 from app.core.rate_limit import setup_rate_limiting
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+from app.routers.deps import get_db
+from fastapi.responses import JSONResponse
 
 # Initialize logging
 logger = setup_logging()
@@ -74,14 +78,28 @@ async def root():
     )
 
 @app.get("/health", response_model=APIResponse)
-async def health_check():
-    # TODO: Add database health check
-    return APIResponse(
-        success=True,
-        message="Service is healthy",
-        data={
-            "status": "UP",
-            "database": "UP"
-        },
-        correlationId=get_correlation_id()
-    )
+async def health_check(db: Session = Depends(get_db)):
+    try:
+        db.execute(text("SELECT 1"))
+        return APIResponse(
+            success=True,
+            message="Service is healthy",
+            data={
+                "status": "UP",
+                "database": "UP"
+            },
+            correlationId=get_correlation_id()
+        )
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        response = APIResponse(
+            success=False,
+            message="Service Unavailable",
+            data={
+                "status": "DOWN",
+                "database": "DOWN"
+            },
+            errors=[],
+            correlationId=get_correlation_id()
+        )
+        return JSONResponse(status_code=503, content=response.model_dump())

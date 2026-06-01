@@ -29,7 +29,7 @@ def get_profile(db: Session = Depends(get_db)):
     return success_response(data=profiles[0])
 
 @router.get("/profile/resume/download")
-def download_resume(db: Session = Depends(get_db)):
+def download_resume(request: Request, db: Session = Depends(get_db)):
     profiles = profile_repo.get_multi(db, limit=1)
     if not profiles or not profiles[0].resume_url:
         raise PortfolioException("Resume not found", ErrorCodes.NOT_FOUND, 404)
@@ -38,7 +38,16 @@ def download_resume(db: Session = Depends(get_db)):
     if not os.path.exists(file_path):
         raise PortfolioException("Resume file missing from storage", ErrorCodes.NOT_FOUND, 404)
         
-    # TODO: Log analytics event for download here if needed.
+    # Log analytics event
+    from app.repositories.analytics import analytics_event_repo
+    client_ip = request.client.host if request.client else None
+    user_agent = request.headers.get("user-agent")
+    analytics_event_repo.create(db, obj_in={
+        "event_type": "RESUME_DOWNLOAD", 
+        "metadata_json": {"file_name": profiles[0].resume_file_name},
+        "ip_address": client_ip,
+        "user_agent": user_agent
+    })
     
     return FileResponse(path=file_path, filename=profiles[0].resume_file_name, media_type="application/pdf")
 
@@ -77,17 +86,51 @@ def get_skills(db: Session = Depends(get_db)):
 @router.post("/contact", response_model=APIResponse)
 @limiter.limit("5/hour")
 def submit_contact(request: Request, contact: ContactLeadCreate, db: Session = Depends(get_db)):
-    contact_lead_repo.create(db, obj_in=contact)
+    data = contact.model_dump()
+    data["ip_address"] = request.client.host if request.client else None
+    data["user_agent"] = request.headers.get("user-agent")
+    data["source"] = "public_web"
+    contact_lead_repo.create(db, obj_in=data)
+    
+    # Log analytics
+    from app.repositories.analytics import analytics_event_repo
+    analytics_event_repo.create(db, obj_in={
+        "event_type": "CONTACT_FORM_SUBMIT",
+        "ip_address": data["ip_address"],
+        "user_agent": data["user_agent"]
+    })
     return success_response(message="Contact lead submitted successfully")
 
 @router.post("/jd-match", response_model=APIResponse)
 @limiter.limit("5/hour")
 def submit_jd_match(request: Request, query: JDQueryCreate, db: Session = Depends(get_db)):
-    result = calculate_jd_match(db, query)
+    client_ip = request.client.host if request.client else None
+    user_agent = request.headers.get("user-agent")
+    result = calculate_jd_match(db, query, ip_address=client_ip, user_agent=user_agent)
+    
+    # Log analytics
+    from app.repositories.analytics import analytics_event_repo
+    analytics_event_repo.create(db, obj_in={
+        "event_type": "JD_MATCH_SUBMIT",
+        "ip_address": client_ip,
+        "user_agent": user_agent
+    })
     return success_response(data=result.model_dump(), message="JD match calculated successfully")
 
 @router.post("/analytics/events", response_model=APIResponse)
-def submit_analytics_event(event_type: str, metadata_json: dict = None, db: Session = Depends(get_db)):
+def submit_analytics_event(request: Request, event: dict, db: Session = Depends(get_db)):
     from app.repositories.analytics import analytics_event_repo
-    analytics_event_repo.create(db, obj_in={"event_type": event_type, "metadata_json": metadata_json})
+    client_ip = request.client.host if request.client else None
+    user_agent = request.headers.get("user-agent")
+    event_type = event.get("event_type", "UNKNOWN")
+    metadata_json = event.get("metadata_json", {})
+    page_url = event.get("page_url", None)
+    
+    analytics_event_repo.create(db, obj_in={
+        "event_type": event_type, 
+        "metadata_json": metadata_json,
+        "page_url": page_url,
+        "ip_address": client_ip,
+        "user_agent": user_agent
+    })
     return success_response()

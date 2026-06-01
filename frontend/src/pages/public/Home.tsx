@@ -23,15 +23,15 @@ export function Home() {
   return (
     <div className="container mx-auto p-8 space-y-12">
       <Helmet>
-        <title>{profile?.name || 'Portfolio'} - Home</title>
-        <meta name="description" content={profile?.bio || 'Personal portfolio website'} />
+        <title>{profile?.full_name || 'Portfolio'} - Home</title>
+        <meta name="description" content={profile?.summary || 'Personal portfolio website'} />
       </Helmet>
 
       {/* Hero Section */}
       <section className="text-center space-y-4 py-20 bg-muted/30 rounded-xl">
-        <h1 className="text-5xl font-extrabold tracking-tight">{profile?.name || 'Your Name'}</h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">{profile?.title || 'Your Title'}</p>
-        <p className="max-w-3xl mx-auto text-lg">{profile?.bio}</p>
+        <h1 className="text-5xl font-extrabold tracking-tight">{profile?.full_name || 'Your Name'}</h1>
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">{profile?.headline || 'Your Title'}</p>
+        <p className="max-w-3xl mx-auto text-lg">{profile?.summary}</p>
         <div className="pt-4 flex justify-center gap-4">
           {profile?.resume_url && (
             <Button asChild size="lg">
@@ -54,14 +54,28 @@ export function Home() {
             <Card key={p.id}>
               <CardHeader>
                 <CardTitle>{p.title}</CardTitle>
-                <CardDescription className="line-clamp-3">{p.description}</CardDescription>
+                <CardDescription className="line-clamp-3">{p.short_description}</CardDescription>
               </CardHeader>
-              <CardContent>
-                {p.link && (
-                  <Button variant="link" className="p-0" asChild>
-                    <a href={p.link} target="_blank" rel="noreferrer">View Project &rarr;</a>
-                  </Button>
+              <CardContent className="space-y-4">
+                {p.tech_stack && typeof p.tech_stack === 'object' && Object.keys(p.tech_stack).length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {Object.keys(p.tech_stack).map((tech: string) => (
+                      <span key={tech} className="px-2 py-1 bg-secondary text-secondary-foreground rounded text-xs">{tech}</span>
+                    ))}
+                  </div>
                 )}
+                <div className="flex gap-2">
+                  {p.live_url && (
+                    <Button variant="link" className="p-0" asChild>
+                      <a href={p.live_url} target="_blank" rel="noreferrer">Live Demo &rarr;</a>
+                    </Button>
+                  )}
+                  {p.github_url && (
+                    <Button variant="link" className="p-0 text-muted-foreground" asChild>
+                      <a href={p.github_url} target="_blank" rel="noreferrer">GitHub</a>
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}
