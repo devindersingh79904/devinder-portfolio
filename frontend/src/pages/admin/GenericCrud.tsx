@@ -1,20 +1,24 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/services/api'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
 
 interface FieldDef {
   key: string
   label: string
-  type: 'text' | 'textarea' | 'number' | 'boolean' | 'date'
+  type: 'text' | 'textarea' | 'number' | 'boolean' | 'date' | 'array'
+  required?: boolean
 }
 
 interface GenericCrudProps {
@@ -29,7 +33,32 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
   const queryClient = useQueryClient()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const { register, handleSubmit, reset, setValue } = useForm()
+  
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  // Dynamically build Zod schema
+  const schemaMap: any = {}
+  fields.forEach(f => {
+    let fieldSchema: any
+    if (f.type === 'number') {
+      fieldSchema = z.coerce.number()
+    } else if (f.type === 'boolean') {
+      fieldSchema = z.coerce.boolean()
+    } else {
+      fieldSchema = z.string()
+    }
+    if (!f.required) {
+      fieldSchema = fieldSchema.optional().or(z.literal(''))
+    } else if (f.type !== 'number' && f.type !== 'boolean') {
+      fieldSchema = fieldSchema.min(1, `${f.label} is required`)
+    }
+    schemaMap[f.key] = fieldSchema
+  })
+  const schema = z.object(schemaMap)
+
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm({
+    resolver: zodResolver(schema)
+  })
   
   const { data, isLoading } = useQuery({
     queryKey: [endpoint],
@@ -61,8 +90,12 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [endpoint] })
       toast.success(`${entityName} deleted successfully`)
+      setDeleteId(null)
     },
-    onError: () => toast.error(`Failed to delete ${entityName}`)
+    onError: () => {
+      toast.error(`Failed to delete ${entityName}`)
+      setDeleteId(null)
+    }
   })
 
   const items = data?.data?.content || []
@@ -79,6 +112,8 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
       let val = item[f.key]
       if (f.type === 'date' && val) {
         val = val.split('T')[0]
+      } else if (f.type === 'array' && val) {
+        val = Array.isArray(val) ? val.join(', ') : val
       }
       setValue(f.key, val)
     })
@@ -90,6 +125,9 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
     fields.forEach(f => {
       if (f.type === 'number' && formData[f.key]) formData[f.key] = Number(formData[f.key])
       if (f.type === 'boolean') formData[f.key] = formData[f.key] === 'true' || formData[f.key] === true
+      if (f.type === 'array' && formData[f.key]) {
+        formData[f.key] = formData[f.key].split(',').map((s: string) => s.trim()).filter(Boolean)
+      }
     })
 
     if (editingId) {
@@ -128,6 +166,11 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
                     {...register(field.key)} 
                   />
                 )}
+                {errors[field.key] && (
+                  <span className="text-red-500 text-sm">
+                    {errors[field.key]?.message as string}
+                  </span>
+                )}
               </div>
             ))}
             <DialogFooter>
@@ -165,11 +208,7 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
                         <Button 
                           variant="destructive" 
                           size="sm"
-                          onClick={() => {
-                            if (window.confirm(`Are you sure you want to delete this ${entityName}?`)) {
-                              deleteMutation.mutate(item.id)
-                            }
-                          }}
+                          onClick={() => setDeleteId(item.id)}
                         >
                           Delete
                         </Button>
@@ -189,6 +228,26 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open: boolean) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will delete the {entityName.toLowerCase()}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deleteId && deleteMutation.mutate(deleteId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

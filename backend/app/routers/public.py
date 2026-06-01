@@ -12,9 +12,10 @@ from app.schemas.portfolio import (
     ExperienceOut, EducationOut, CertificationOut, SkillOut
 )
 from app.repositories.portfolio import (
-    profile_repo, project_repo, experience_repo, 
+    project_repo, experience_repo, 
     education_repo, certification_repo, skill_repo
 )
+from app.repositories.profile import profile_repo
 from app.repositories.queries import contact_lead_repo
 from app.services.jd_match import calculate_jd_match
 
@@ -122,9 +123,9 @@ def submit_analytics_event(request: Request, event: dict, db: Session = Depends(
     from app.repositories.analytics import analytics_event_repo
     client_ip = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")
-    event_type = event.get("event_type", "UNKNOWN")
-    metadata_json = event.get("metadata_json", {})
-    page_url = event.get("page_url", None)
+    event_type = event.get("eventType", "UNKNOWN")
+    metadata_json = event.get("metadata", {})
+    page_url = event.get("pageUrl", None)
     
     analytics_event_repo.create(db, obj_in={
         "event_type": event_type, 

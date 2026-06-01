@@ -175,12 +175,14 @@ class ContactLeadOut(ContactLeadCreate, ORMBase):
 # -----------------
 # JD QUERIES
 # -----------------
+from pydantic import BaseModel, ConfigDict, Field
+
 class JDQueryCreate(BaseModel):
-    hr_name: Optional[str] = None
-    hr_email: Optional[str] = None
-    company_name: Optional[str] = None
-    role_title: Optional[str] = None
-    jd_text: str
+    hrName: Optional[str] = Field(None, alias="hr_name", validation_alias="hrName")
+    hrEmail: Optional[str] = Field(None, alias="hr_email", validation_alias="hrEmail")
+    companyName: Optional[str] = Field(None, alias="company_name", validation_alias="companyName")
+    roleTitle: Optional[str] = Field(None, alias="role_title", validation_alias="roleTitle")
+    jdText: str = Field(..., alias="jd_text", validation_alias="jdText")
 
 class JDMatchResult(BaseModel):
     matchScore: float
@@ -193,14 +195,14 @@ class JDMatchResult(BaseModel):
 
 class JDQueryOut(ORMBase):
     id: UUID
-    hr_name: Optional[str] = None
-    hr_email: Optional[str] = None
-    company_name: Optional[str] = None
-    role_title: Optional[str] = None
-    jd_text: str
-    match_score: float
-    result_json: Optional[JDMatchResult] = None
-    created_at: datetime
+    hrName: Optional[str] = Field(None, validation_alias="hr_name")
+    hrEmail: Optional[str] = Field(None, validation_alias="hr_email")
+    companyName: Optional[str] = Field(None, validation_alias="company_name")
+    roleTitle: Optional[str] = Field(None, validation_alias="role_title")
+    jdText: str = Field(..., validation_alias="jd_text")
+    matchScore: float = Field(..., validation_alias="match_score")
+    resultJson: Optional[JDMatchResult] = Field(None, validation_alias="result_json")
+    createdAt: datetime = Field(..., validation_alias="created_at")
 
 # -----------------
 # ANALYTICS

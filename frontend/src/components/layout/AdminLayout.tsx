@@ -1,13 +1,20 @@
-import { Outlet, Link, useNavigate, Navigate } from "react-router-dom"
+import { Outlet, Link, useNavigate, Navigate, useLocation } from "react-router-dom"
 import { ROUTES, STORAGE_KEYS } from "@/constants"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
-import { Menu, X } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Menu } from "lucide-react"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 
 export function AdminLayout() {
   const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
   const navigate = useNavigate()
+  const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [location.pathname])
 
   if (!token) {
     return <Navigate to={ROUTES.ADMIN_LOGIN} replace />
@@ -35,9 +42,32 @@ export function AdminLayout() {
       {/* Mobile Top Bar */}
       <div className="md:hidden flex items-center justify-between border-b bg-muted/40 p-4">
         <div className="font-bold text-xl">Admin Panel</div>
-        <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-          {mobileMenuOpen ? <X /> : <Menu />}
-        </Button>
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger render={
+            <Button variant="ghost" size="icon">
+              <Menu />
+            </Button>
+          }>
+            <span className="sr-only">Toggle Menu</span>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-64 p-4 flex flex-col gap-4">
+            <SheetTitle className="font-bold text-xl mb-4">Admin Panel</SheetTitle>
+            <nav className="flex flex-col gap-2 text-sm">
+              {navLinks.map((link) => (
+                <Link 
+                  key={link.name} 
+                  to={link.path} 
+                  className={`p-3 rounded hover:bg-muted ${location.pathname === link.path ? 'bg-muted font-medium' : ''}`}
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </nav>
+            <div className="mt-auto">
+              <Button variant="outline" className="w-full" onClick={handleLogout}>Logout</Button>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* Sidebar - Desktop */}
@@ -45,7 +75,11 @@ export function AdminLayout() {
         <div className="font-bold text-xl mb-4">Admin Panel</div>
         <nav className="flex flex-col gap-2 text-sm">
           {navLinks.map((link) => (
-            <Link key={link.name} to={link.path} className="p-2 hover:bg-muted rounded">
+            <Link 
+              key={link.name} 
+              to={link.path} 
+              className={`p-2 rounded hover:bg-muted ${location.pathname === link.path ? 'bg-muted font-medium' : ''}`}
+            >
               {link.name}
             </Link>
           ))}
@@ -54,20 +88,6 @@ export function AdminLayout() {
           <Button variant="outline" className="w-full" onClick={handleLogout}>Logout</Button>
         </div>
       </aside>
-
-      {/* Sidebar - Mobile Dropdown (Simple implementation) */}
-      {mobileMenuOpen && (
-        <aside className="md:hidden flex flex-col gap-4 border-b bg-background p-4 absolute w-full z-50">
-          <nav className="flex flex-col gap-2 text-sm">
-            {navLinks.map((link) => (
-              <Link key={link.name} to={link.path} onClick={() => setMobileMenuOpen(false)} className="p-3 bg-muted/30 hover:bg-muted rounded">
-                {link.name}
-              </Link>
-            ))}
-          </nav>
-          <Button variant="outline" className="w-full mt-4" onClick={handleLogout}>Logout</Button>
-        </aside>
-      )}
 
       {/* Main Content */}
       <main className="flex-1 p-4 md:p-8 bg-background overflow-x-hidden min-h-[calc(100vh-65px)] md:min-h-screen">

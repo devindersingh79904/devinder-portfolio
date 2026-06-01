@@ -118,6 +118,10 @@ export function AdminProfile() {
                 <Label htmlFor="github_url">GitHub URL</Label>
                 <Input id="github_url" {...register('github_url')} />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="profile_image_url">Profile Image URL</Label>
+                <Input id="profile_image_url" {...register('profile_image_url')} />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="summary">Summary</Label>

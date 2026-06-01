@@ -28,9 +28,10 @@ from app.schemas.portfolio import (
     JDQueryOut, ContactLeadOut
 )
 from app.repositories.portfolio import (
-    project_repo, experience_repo, education_repo,
-    certification_repo, skill_repo, profile_repo
+    project_repo, experience_repo, 
+    education_repo, certification_repo, skill_repo
 )
+from app.repositories.profile import profile_repo
 from app.repositories.queries import contact_lead_repo, jd_query_repo
 
 router = APIRouter(prefix="/api/v1/admin")
@@ -204,10 +205,10 @@ def get_dashboard_stats(db: Session = Depends(get_db), current_admin: AdminUser 
     recent_leads = contact_lead_repo.get_multi(db, limit=5)
     
     return success_response(data=DashboardStats(
-        total_jd_queries=total_jd_queries,
-        average_match_score=round(average_match_score, 2),
-        total_contact_leads=total_contact_leads,
-        total_resume_downloads=total_resume_downloads,
-        recent_jd_queries=[JDQueryOut.model_validate(q) for q in recent_jd],
-        recent_contact_leads=[ContactLeadOut.model_validate(l) for l in recent_leads]
+        totalJdQueries=total_jd_queries,
+        averageMatchScore=round(average_match_score, 2),
+        totalContactLeads=total_contact_leads,
+        totalResumeDownloads=total_resume_downloads,
+        recentJdQueries=[JDQueryOut.model_validate(q) for q in recent_jd],
+        recentContactLeads=[ContactLeadOut.model_validate(l) for l in recent_leads]
     ).model_dump())

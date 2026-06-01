@@ -94,12 +94,18 @@ async def health_check(db: Session = Depends(get_db)):
         logger.error(f"Health check failed: {str(e)}")
         response = APIResponse(
             success=False,
-            message="Service Unavailable",
+            message="Service is unhealthy",
             data={
                 "status": "DOWN",
                 "database": "DOWN"
             },
-            errors=[],
+            errors=[
+                {
+                    "field": "database",
+                    "message": "Database connectivity check failed",
+                    "code": "DATABASE_DOWN"
+                }
+            ],
             correlationId=get_correlation_id()
         )
         return JSONResponse(status_code=503, content=response.model_dump())

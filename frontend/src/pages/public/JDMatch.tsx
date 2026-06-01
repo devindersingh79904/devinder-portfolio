@@ -23,11 +23,11 @@ export function JDMatch() {
     e.preventDefault()
     if (!jdText) return
     matchMutation.mutate({
-      jd_text: jdText,
-      hr_name: hrName,
-      hr_email: hrEmail,
-      company_name: company,
-      role_title: roleTitle
+      jdText,
+      hrName,
+      hrEmail,
+      companyName: company,
+      roleTitle
     })
   }
 

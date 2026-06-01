@@ -57,9 +57,9 @@ export function Home() {
                 <CardDescription className="line-clamp-3">{p.short_description}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {p.tech_stack && typeof p.tech_stack === 'object' && Object.keys(p.tech_stack).length > 0 && (
+                {Array.isArray(p.tech_stack) && p.tech_stack.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {Object.keys(p.tech_stack).map((tech: string) => (
+                    {p.tech_stack.map((tech: string) => (
                       <span key={tech} className="px-2 py-1 bg-secondary text-secondary-foreground rounded text-xs">{tech}</span>
                     ))}
                   </div>

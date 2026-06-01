@@ -14,8 +14,8 @@ export function AdminDashboard() {
   }
 
   const stats = statsResp?.data || {}
-  const queries = stats.recent_jd_queries || []
-  const leads = stats.recent_contact_leads || []
+  const queries = stats.recentJdQueries || []
+  const leads = stats.recentContactLeads || []
 
   return (
     <div className="space-y-8">
@@ -27,7 +27,7 @@ export function AdminDashboard() {
             <CardTitle>JD Queries</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-5xl font-extrabold text-primary">{stats.total_jd_queries || 0}</div>
+            <div className="text-5xl font-extrabold text-primary">{stats.totalJdQueries || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -35,7 +35,7 @@ export function AdminDashboard() {
             <CardTitle>Avg Match Score</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-5xl font-extrabold text-primary">{stats.average_match_score || 0}%</div>
+            <div className="text-5xl font-extrabold text-primary">{stats.averageMatchScore || 0}%</div>
           </CardContent>
         </Card>
         <Card>
@@ -43,7 +43,7 @@ export function AdminDashboard() {
             <CardTitle>Contact Leads</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-5xl font-extrabold text-primary">{stats.total_contact_leads || 0}</div>
+            <div className="text-5xl font-extrabold text-primary">{stats.totalContactLeads || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -51,7 +51,7 @@ export function AdminDashboard() {
             <CardTitle>Resume Downloads</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-5xl font-extrabold text-primary">{stats.total_resume_downloads || 0}</div>
+            <div className="text-5xl font-extrabold text-primary">{stats.totalResumeDownloads || 0}</div>
           </CardContent>
         </Card>
       </div>

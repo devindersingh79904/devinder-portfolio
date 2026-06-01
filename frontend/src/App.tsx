@@ -41,7 +41,26 @@ function App() {
         <Route element={<AdminLayout />}>
           <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboard />} />
           <Route path={ROUTES.ADMIN_PROFILE} element={<AdminProfile />} />
-          <Route path={ROUTES.ADMIN_PROJECTS} element={<GenericCrud entityName="Projects" endpoint="/projects" columns={[{key: 'title', label: 'Title'}, {key: 'is_featured', label: 'Featured'}]} fields={[{key: 'title', label: 'Title', type: 'text'}, {key: 'short_description', label: 'Short Description', type: 'textarea'}, {key: 'live_url', label: 'Live URL', type: 'text'}]} />} />
+          <Route path={ROUTES.ADMIN_PROJECTS} element={<GenericCrud 
+            entityName="Projects" 
+            endpoint="/projects" 
+            columns={[{key: 'title', label: 'Title'}, {key: 'is_featured', label: 'Featured'}]} 
+            fields={[
+              {key: 'title', label: 'Title', type: 'text', required: true}, 
+              {key: 'short_description', label: 'Short Description', type: 'text'}, 
+              {key: 'detailed_description', label: 'Detailed Description', type: 'textarea'},
+              {key: 'problem_solved', label: 'Problem Solved', type: 'textarea'},
+              {key: 'tech_stack', label: 'Tech Stack (comma-separated)', type: 'array'},
+              {key: 'features', label: 'Features (comma-separated)', type: 'array'},
+              {key: 'github_url', label: 'GitHub URL', type: 'text'},
+              {key: 'live_url', label: 'Live URL', type: 'text'},
+              {key: 'demo_url', label: 'Demo URL', type: 'text'},
+              {key: 'architecture_url', label: 'Architecture URL', type: 'text'},
+              {key: 'display_order', label: 'Display Order', type: 'number'},
+              {key: 'is_featured', label: 'Is Featured', type: 'boolean'},
+              {key: 'is_active', label: 'Is Active', type: 'boolean'}
+            ]} 
+          />} />
           <Route path={ROUTES.ADMIN_EXPERIENCE} element={<GenericCrud entityName="Experience" endpoint="/experience" columns={[{key: 'company_name', label: 'Company'}, {key: 'role', label: 'Role'}]} fields={[{key: 'company_name', label: 'Company', type: 'text'}, {key: 'role', label: 'Role', type: 'text'}, {key: 'start_date', label: 'Start Date', type: 'date'}]} />} />
           <Route path={ROUTES.ADMIN_EDUCATION} element={<GenericCrud entityName="Education" endpoint="/education" columns={[{key: 'degree', label: 'Degree'}, {key: 'institution_name', label: 'Institution'}]} fields={[{key: 'institution_name', label: 'Institution', type: 'text'}, {key: 'degree', label: 'Degree', type: 'text'}]} />} />
           <Route path={ROUTES.ADMIN_CERTIFICATIONS} element={<GenericCrud entityName="Certifications" endpoint="/certifications" columns={[{key: 'title', label: 'Name'}, {key: 'issuer', label: 'Issuer'}]} fields={[{key: 'title', label: 'Title', type: 'text'}, {key: 'issuer', label: 'Issuer', type: 'text'}]} />} />

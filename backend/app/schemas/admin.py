@@ -13,9 +13,9 @@ class Token(BaseModel):
     token_type: str
 
 class DashboardStats(BaseModel):
-    total_jd_queries: int
-    average_match_score: float
-    total_contact_leads: int
-    total_resume_downloads: int
-    recent_jd_queries: List[JDQueryOut]
-    recent_contact_leads: List[ContactLeadOut]
+    totalJdQueries: int
+    averageMatchScore: float
+    totalContactLeads: int
+    totalResumeDownloads: int
+    recentJdQueries: List[JDQueryOut]
+    recentContactLeads: List[ContactLeadOut]
