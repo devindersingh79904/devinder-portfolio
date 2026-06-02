@@ -44,14 +44,29 @@ def calculate_jd_match(db: Session, query: JDQueryCreate, ip_address: str = None
     
     relevant_projects = []
     for p in projects:
-        # Check if project description contains any matched skill
-        if any(normalize_text(s) in normalize_text(p.description) for s in matched_skills):
-            relevant_projects.append({"id": str(p.id), "title": p.title})
+        project_text = f"{p.title} {p.short_description or ''} {p.detailed_description or ''} {p.problem_solved or ''}".lower()
+        if p.tech_stack:
+            project_text += " " + json.dumps(p.tech_stack).lower()
+        if p.features:
+            project_text += " " + json.dumps(p.features).lower()
+            
+        matched_in_project = [s for s in matched_skills if normalize_text(s) in project_text]
+        if matched_in_project:
+            reason = f"Matches {', '.join(matched_in_project[:3])}"
+            relevant_projects.append({"id": str(p.id), "title": p.title, "reason": reason})
             
     relevant_experiences = []
     for e in experiences:
-        if any(normalize_text(s) in normalize_text(e.description) for s in matched_skills):
-            relevant_experiences.append({"id": str(e.id), "company": e.company, "role": e.role})
+        exp_text = f"{e.company_name} {e.role} {e.summary or ''}".lower()
+        if e.achievements:
+            exp_text += " " + json.dumps(e.achievements).lower()
+        if e.tech_stack:
+            exp_text += " " + json.dumps(e.tech_stack).lower()
+            
+        matched_in_exp = [s for s in matched_skills if normalize_text(s) in exp_text]
+        if matched_in_exp:
+            reason = f"Relevant {', '.join(matched_in_exp[:3])} experience"
+            relevant_experiences.append({"id": str(e.id), "companyName": e.company_name, "role": e.role, "reason": reason})
             
     exp_score_pct = 20.0
     if not relevant_projects and not relevant_experiences:

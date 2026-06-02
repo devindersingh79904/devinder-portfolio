@@ -33,8 +33,10 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
   const queryClient = useQueryClient()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  
+  const [page, setPage] = useState(0)
+  const [size, setSize] = useState(10)
 
   // Dynamically build Zod schema
   const schemaMap: any = {}
@@ -61,12 +63,12 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
   })
   
   const { data, isLoading } = useQuery({
-    queryKey: [endpoint],
-    queryFn: () => apiClient.get(`/admin${endpoint}`)
+    queryKey: [endpoint, page, size],
+    queryFn: () => apiClient.get(`${endpoint}?page=${page}&size=${size}`)
   })
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => apiClient.post(`/admin${endpoint}`, data),
+    mutationFn: (data: any) => apiClient.post(`${endpoint}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [endpoint] })
       toast.success(`${entityName} created successfully`)
@@ -76,7 +78,7 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string, data: any }) => apiClient.put(`/admin${endpoint}/${id}`, data),
+    mutationFn: ({ id, data }: { id: string, data: any }) => apiClient.put(`${endpoint}/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [endpoint] })
       toast.success(`${entityName} updated successfully`)
@@ -86,7 +88,7 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => apiClient.delete(`/admin${endpoint}/${id}`),
+    mutationFn: (id: string) => apiClient.delete(`${endpoint}/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [endpoint] })
       toast.success(`${entityName} deleted successfully`)
@@ -98,7 +100,11 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
     }
   })
 
-  const items = data?.data?.content || []
+  const paginationData = data?.data || {}
+  const items = paginationData.content || []
+  const totalPages = paginationData.totalPages || 0
+  const isFirst = paginationData.first ?? true
+  const isLast = paginationData.last ?? true
 
   const openAddModal = () => {
     setEditingId(null)
@@ -226,6 +232,46 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
               )}
             </TableBody>
           </Table>
+          
+          <div className="flex items-center justify-between px-2 mt-4">
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+              <span>Rows per page</span>
+              <select 
+                className="border rounded p-1"
+                value={size}
+                onChange={(e) => {
+                  setSize(Number(e.target.value))
+                  setPage(0)
+                }}
+              >
+                {[5, 10, 20, 50].map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-muted-foreground">
+                Page {page + 1} of {Math.max(1, totalPages)}
+              </span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={isFirst} 
+                onClick={() => setPage(p => Math.max(0, p - 1))}
+              >
+                Previous
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={isLast} 
+                onClick={() => setPage(p => p + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

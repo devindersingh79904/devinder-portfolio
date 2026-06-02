@@ -2,11 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/services/api'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Helmet } from 'react-helmet-async'
+import { API_ROUTES } from '@/constants'
+import { QUERY_KEYS } from '@/constants'
 
 export function PublicCertifications() {
   const { data: certsResp, isLoading } = useQuery({
-    queryKey: ['public-certs'],
-    queryFn: () => apiClient.get('/certifications')
+    queryKey: [QUERY_KEYS.PUBLIC_CERTS],
+    queryFn: () => apiClient.get(API_ROUTES.CERTIFICATIONS)
   })
 
   const certs = certsResp?.data || []

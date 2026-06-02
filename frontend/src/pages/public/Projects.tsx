@@ -3,11 +3,15 @@ import { apiClient } from '@/services/api'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Helmet } from 'react-helmet-async'
+import { Link } from 'react-router-dom'
+import { API_ROUTES } from '@/constants/apiRoutes'
+import { ROUTES } from '@/constants/routes'
+import { QUERY_KEYS } from '@/constants'
 
 export function PublicProjects() {
   const { data: projectsResp, isLoading } = useQuery({
-    queryKey: ['public-projects'],
-    queryFn: () => apiClient.get('/projects')
+    queryKey: [QUERY_KEYS.PUBLIC_PROJECTS],
+    queryFn: () => apiClient.get(API_ROUTES.PROJECTS)
   })
 
   const projects = projectsResp?.data || []
@@ -25,30 +29,33 @@ export function PublicProjects() {
           <Card key={p.id}>
             <CardHeader>
               <CardTitle>{p.title}</CardTitle>
-              <CardDescription>{p.short_description}</CardDescription>
+              <CardDescription>{p.shortDescription}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {Array.isArray(p.tech_stack) && p.tech_stack.length > 0 && (
+              {Array.isArray(p.techStack) && p.techStack.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {p.tech_stack.map((tech: string) => (
+                    {p.techStack.map((tech: string) => (
                       <span key={tech} className="px-2 py-1 bg-secondary text-secondary-foreground rounded text-xs">{tech}</span>
                     ))}
                   </div>
               )}
               <div className="flex gap-4">
-                {p.live_url && (
+                <Button variant="default" className="p-0 px-4" asChild>
+                  <Link to={ROUTES.PROJECT_DETAIL_BUILD(p.id)}>View Details</Link>
+                </Button>
+                {p.liveUrl && (
                   <Button variant="link" className="p-0" asChild>
-                    <a href={p.live_url} target="_blank" rel="noreferrer">Live Demo &rarr;</a>
+                    <a href={p.liveUrl} target="_blank" rel="noreferrer">Live Demo &rarr;</a>
                   </Button>
                 )}
-                {p.github_url && (
+                {p.githubUrl && (
                   <Button variant="link" className="p-0 text-muted-foreground" asChild>
-                    <a href={p.github_url} target="_blank" rel="noreferrer">GitHub</a>
+                    <a href={p.githubUrl} target="_blank" rel="noreferrer">GitHub</a>
                   </Button>
                 )}
-                {p.architecture_url && (
+                {p.architectureUrl && (
                   <Button variant="link" className="p-0 text-muted-foreground" asChild>
-                    <a href={p.architecture_url} target="_blank" rel="noreferrer">Architecture</a>
+                    <a href={p.architectureUrl} target="_blank" rel="noreferrer">Architecture</a>
                   </Button>
                 )}
               </div>

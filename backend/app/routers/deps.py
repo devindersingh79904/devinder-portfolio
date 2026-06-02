@@ -10,11 +10,11 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/admin/login")
 
 def get_current_admin(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> AdminUser:
     payload = decode_access_token(token)
-    username = payload.get("sub")
-    if username is None:
+    email = payload.get("sub")
+    if email is None:
         raise PortfolioException("Invalid authentication credentials", ErrorCodes.AUTH_ERROR, 401)
         
-    admin = db.query(AdminUser).filter(AdminUser.username == username, AdminUser.is_active == True).first()
+    admin = db.query(AdminUser).filter(AdminUser.email == email, AdminUser.is_active == True).first()
     if admin is None:
         raise PortfolioException("Admin user not found or inactive", ErrorCodes.AUTH_ERROR, 401)
         

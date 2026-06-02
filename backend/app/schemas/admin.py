@@ -5,7 +5,7 @@ from datetime import datetime
 from app.schemas.portfolio import JDQueryOut, ContactLeadOut
 
 class AdminLogin(BaseModel):
-    username: str
+    email: str
     password: str
 
 class Token(BaseModel):

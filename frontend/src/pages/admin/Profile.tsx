@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiClient } from '@/services/api'
+import { apiClient, getResumeDownloadUrl } from '@/services/api'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import { API_ROUTES, QUERY_KEYS } from '@/constants'
 
 export function AdminProfile() {
   const queryClient = useQueryClient()
@@ -16,41 +17,42 @@ export function AdminProfile() {
   const { register, handleSubmit, reset } = useForm()
 
   const { data: profileResp, isLoading } = useQuery({
-    queryKey: ['admin-profile'],
-    queryFn: () => apiClient.get('/admin/profile')
+    queryKey: [QUERY_KEYS.ADMIN_PROFILE],
+    queryFn: () => apiClient.get(API_ROUTES.ADMIN_PROFILE)
   })
   const profile = profileResp?.data
 
   useEffect(() => {
     if (profile) {
       reset({
-        full_name: profile.full_name,
+        fullName: profile.fullName,
         headline: profile.headline,
         summary: profile.summary,
         location: profile.location,
         email: profile.email,
         phone: profile.phone,
-        linkedin_url: profile.linkedin_url,
-        github_url: profile.github_url
+        githubUrl: profile.githubUrl,
+        linkedinUrl: profile.linkedinUrl,
+        profileImageUrl: profile.profileImageUrl
       })
     }
   }, [profile, reset])
 
   const profileMutation = useMutation({
-    mutationFn: (data: any) => apiClient.put('/admin/profile', data),
+    mutationFn: (data: any) => apiClient.put(API_ROUTES.ADMIN_PROFILE, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-profile'] })
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ADMIN_PROFILE] })
       toast.success('Profile details updated successfully!')
     },
     onError: () => toast.error('Failed to update profile details')
   })
 
   const uploadMutation = useMutation({
-    mutationFn: (formData: FormData) => apiClient.post('/admin/profile/resume', formData, {
+    mutationFn: (formData: FormData) => apiClient.post(API_ROUTES.ADMIN_PROFILE_RESUME, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-profile'] })
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ADMIN_PROFILE] })
       toast.success('Resume uploaded successfully!')
       setFile(null)
     },
@@ -91,8 +93,8 @@ export function AdminProfile() {
           <form onSubmit={handleSubmit(onProfileSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="full_name">Full Name</Label>
-                <Input id="full_name" {...register('full_name')} required />
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input id="fullName" {...register('fullName')} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="headline">Headline</Label>
@@ -111,16 +113,16 @@ export function AdminProfile() {
                 <Input id="location" {...register('location')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="linkedin_url">LinkedIn URL</Label>
-                <Input id="linkedin_url" {...register('linkedin_url')} />
+                <Label htmlFor="githubUrl">GitHub URL</Label>
+                <Input id="githubUrl" {...register('githubUrl')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="github_url">GitHub URL</Label>
-                <Input id="github_url" {...register('github_url')} />
+                <Label htmlFor="linkedinUrl">LinkedIn URL</Label>
+                <Input id="linkedinUrl" {...register('linkedinUrl')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="profile_image_url">Profile Image URL</Label>
-                <Input id="profile_image_url" {...register('profile_image_url')} />
+                <Label htmlFor="profileImageUrl">Profile Image URL</Label>
+                <Input id="profileImageUrl" {...register('profileImageUrl')} />
               </div>
             </div>
             <div className="space-y-2">
@@ -141,14 +143,18 @@ export function AdminProfile() {
         <CardContent>
           <div className="mb-6 space-y-2">
             <h3 className="font-semibold">Current Resume</h3>
-            {profile?.resume_url ? (
+            {profile?.resumeUrl ? (
               <div className="flex items-center gap-4 p-4 border rounded bg-muted/20">
                 <div className="flex-1">
-                  <p className="font-medium">{profile.resume_file_name}</p>
-                  <p className="text-sm text-muted-foreground">Last updated: {new Date(profile.resume_updated_at).toLocaleString()}</p>
+                  <p className="font-medium">{profile.resumeFileName}</p>
+                  {profile.resumeUpdatedAt && (
+                    <p className="text-sm text-muted-foreground pt-1">
+                      Last updated: {new Date(profile.resumeUpdatedAt).toLocaleString()}
+                    </p>
+                  )}
                 </div>
                 <Button variant="outline" asChild>
-                  <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'}/profile/resume/download`} target="_blank" rel="noreferrer">
+                  <a href={getResumeDownloadUrl()} target="_blank" rel="noreferrer">
                     Download & Preview
                   </a>
                 </Button>

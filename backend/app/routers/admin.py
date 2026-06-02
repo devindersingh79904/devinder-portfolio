@@ -34,25 +34,32 @@ from app.repositories.portfolio import (
 from app.repositories.profile import profile_repo
 from app.repositories.queries import contact_lead_repo, jd_query_repo
 
-router = APIRouter(prefix="/api/v1/admin")
+from app.core.constants import (
+    ADMIN_PREFIX, ADMIN_LOGIN_PATH, ADMIN_PROFILE_PATH, ADMIN_PROFILE_RESUME_PATH,
+    ADMIN_PROJECTS_PATH, ADMIN_EXPERIENCE_PATH, ADMIN_EDUCATION_PATH, ADMIN_CERTIFICATIONS_PATH, ADMIN_SKILLS_PATH,
+    ADMIN_JD_QUERIES_PATH, ADMIN_JD_QUERIES_EXPORT_PATH, ADMIN_CONTACT_LEADS_PATH, ADMIN_CONTACT_LEADS_EXPORT_PATH,
+    CSV_CONTACT_LEADS_FILENAME, CSV_JD_QUERIES_FILENAME, ADMIN_DASHBOARD_STATS_PATH
+)
 
-@router.post("/login", response_model=APIResponse[Token])
+router = APIRouter(prefix=f"/api/v1{ADMIN_PREFIX}")
+
+@router.post(ADMIN_LOGIN_PATH, response_model=APIResponse[Token])
 def login(credentials: AdminLogin, db: Session = Depends(get_db)):
-    admin = db.query(AdminUser).filter(AdminUser.username == credentials.username).first()
+    admin = db.query(AdminUser).filter(AdminUser.email == credentials.email).first()
     if not admin or not verify_password(credentials.password, admin.password_hash):
-        raise PortfolioException("Incorrect username or password", ErrorCodes.AUTH_ERROR, 401)
+        raise PortfolioException("Incorrect email or password", ErrorCodes.AUTH_ERROR, 401)
     
-    access_token = create_access_token(data={"sub": admin.username})
+    access_token = create_access_token(data={"sub": admin.email, "type": "admin"})
     return success_response(data=Token(access_token=access_token, token_type="bearer").model_dump())
 
-@router.get("/profile", response_model=APIResponse[ProfileOut])
+@router.get(ADMIN_PROFILE_PATH, response_model=APIResponse[ProfileOut])
 def get_admin_profile(db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
     profiles = profile_repo.get_multi(db, limit=1)
     if not profiles:
         raise PortfolioException("Profile not found", ErrorCodes.NOT_FOUND, 404)
     return success_response(data=profiles[0])
 
-@router.put("/profile", response_model=APIResponse[ProfileOut])
+@router.put(ADMIN_PROFILE_PATH, response_model=APIResponse[ProfileOut])
 def update_admin_profile(profile_update: ProfileUpdate, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
     profiles = profile_repo.get_multi(db, limit=1)
     if not profiles:
@@ -66,7 +73,7 @@ def update_admin_profile(profile_update: ProfileUpdate, db: Session = Depends(ge
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "uploads", "resume")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-@router.post("/profile/resume", response_model=APIResponse)
+@router.post(ADMIN_PROFILE_RESUME_PATH, response_model=APIResponse)
 def upload_resume(
     file: UploadFile = File(...), 
     db: Session = Depends(get_db), 
@@ -102,7 +109,8 @@ def register_crud(router: APIRouter, path: str, repo, out_schema, create_schema,
     def read_items(page: int = 0, size: int = 10, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
         total = repo.count(db, filters={"is_active": True})
         items = repo.get_multi(db, skip=page*size, limit=size, filters={"is_active": True})
-        return success_response(data=build_pagination(items, page, size, total).model_dump())
+        schema_items = [out_schema.model_validate(item) for item in items]
+        return success_response(data=build_pagination(schema_items, page, size, total).model_dump(by_alias=True))
         
     @router.get(f"{path}/{{item_id}}")
     def read_item(item_id: str, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
@@ -114,7 +122,7 @@ def register_crud(router: APIRouter, path: str, repo, out_schema, create_schema,
     @router.post(f"{path}")
     def create_item(item_in: create_schema, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
         data = item_in.model_dump()
-        data["updated_by"] = current_admin.username
+        data["updated_by"] = current_admin.email
         item = repo.create(db, obj_in=data)
         return success_response(data=item)
         
@@ -124,7 +132,7 @@ def register_crud(router: APIRouter, path: str, repo, out_schema, create_schema,
         if not item or not item.is_active:
             raise PortfolioException("Item not found", ErrorCodes.NOT_FOUND, 404)
         data = item_in.model_dump(exclude_unset=True)
-        data["updated_by"] = current_admin.username
+        data["updated_by"] = current_admin.email
         item = repo.update(db, db_obj=item, obj_in=data)
         return success_response(data=item)
         
@@ -135,37 +143,39 @@ def register_crud(router: APIRouter, path: str, repo, out_schema, create_schema,
             raise PortfolioException("Item not found", ErrorCodes.NOT_FOUND, 404)
         return success_response(message="Item deleted successfully")
 
-register_crud(router, "/projects", project_repo, ProjectOut, ProjectCreate, ProjectUpdate)
-register_crud(router, "/experience", experience_repo, ExperienceOut, ExperienceCreate, ExperienceUpdate)
-register_crud(router, "/education", education_repo, EducationOut, EducationCreate, EducationUpdate)
-register_crud(router, "/certifications", certification_repo, CertificationOut, CertificationCreate, CertificationUpdate)
-register_crud(router, "/skills", skill_repo, SkillOut, SkillCreate, SkillUpdate)
+register_crud(router, ADMIN_PROJECTS_PATH, project_repo, ProjectOut, ProjectCreate, ProjectUpdate)
+register_crud(router, ADMIN_EXPERIENCE_PATH, experience_repo, ExperienceOut, ExperienceCreate, ExperienceUpdate)
+register_crud(router, ADMIN_EDUCATION_PATH, education_repo, EducationOut, EducationCreate, EducationUpdate)
+register_crud(router, ADMIN_CERTIFICATIONS_PATH, certification_repo, CertificationOut, CertificationCreate, CertificationUpdate)
+register_crud(router, ADMIN_SKILLS_PATH, skill_repo, SkillOut, SkillCreate, SkillUpdate)
 
 # Queries and Leads
-@router.get("/jd-queries")
+@router.get(ADMIN_JD_QUERIES_PATH)
 def get_jd_queries(page: int = 0, size: int = 10, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
     total = jd_query_repo.count(db)
     items = jd_query_repo.get_multi(db, skip=page*size, limit=size)
-    return success_response(data=build_pagination(items, page, size, total).model_dump())
+    schema_items = [JDQueryOut.model_validate(item) for item in items]
+    return success_response(data=build_pagination(schema_items, page, size, total).model_dump(by_alias=True))
 
-@router.delete("/jd-queries/{query_id}")
+@router.delete(ADMIN_JD_QUERIES_PATH + "/{query_id}")
 def delete_jd_query(query_id: str, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
     jd_query_repo.remove(db, id=query_id)
     return success_response(message="Query deleted successfully")
 
-@router.get("/contact-leads")
+@router.get(ADMIN_CONTACT_LEADS_PATH)
 def get_contact_leads(page: int = 0, size: int = 10, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
     total = contact_lead_repo.count(db)
     items = contact_lead_repo.get_multi(db, skip=page*size, limit=size)
-    return success_response(data=build_pagination(items, page, size, total).model_dump())
+    schema_items = [ContactLeadOut.model_validate(item) for item in items]
+    return success_response(data=build_pagination(schema_items, page, size, total).model_dump(by_alias=True))
 
-@router.delete("/contact-leads/{lead_id}")
+@router.delete(ADMIN_CONTACT_LEADS_PATH + "/{lead_id}")
 def delete_contact_lead(lead_id: str, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
     contact_lead_repo.remove(db, id=lead_id)
     return success_response(message="Lead deleted successfully")
 
 # Exports
-@router.get("/contact-leads/export")
+@router.get(ADMIN_CONTACT_LEADS_EXPORT_PATH)
 def export_contact_leads(db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
     leads = contact_lead_repo.get_multi(db, limit=10000)
     output = StringIO()
@@ -175,21 +185,34 @@ def export_contact_leads(db: Session = Depends(get_db), current_admin: AdminUser
         writer.writerow([str(lead.id), lead.name, lead.email, lead.company, lead.subject, lead.message, lead.created_at.isoformat()])
         
     output.seek(0)
-    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=contact-leads.csv"})
+    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={"Content-Disposition": f"attachment; filename={CSV_CONTACT_LEADS_FILENAME}"})
 
-@router.get("/jd-queries/export")
+@router.get(ADMIN_JD_QUERIES_EXPORT_PATH)
 def export_jd_queries(db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
     queries = jd_query_repo.get_multi(db, limit=10000)
     output = StringIO()
     writer = csv.writer(output)
-    writer.writerow(["ID", "Match Score", "Query Text", "Created At"])
+    writer.writerow(["ID", "HR Name", "HR Email", "Company", "Role Title", "JD Text", "Match Score", "Matched Skills", "Missing Skills", "Weak Skills", "Summary", "Created At"])
     for q in queries:
-        writer.writerow([str(q.id), q.match_score, q.query_text, q.created_at.isoformat()])
+        writer.writerow([
+            str(q.id), 
+            q.hr_name, 
+            q.hr_email, 
+            q.company_name, 
+            q.role_title, 
+            q.jd_text, 
+            q.match_score, 
+            ", ".join(q.matched_skills) if q.matched_skills else "",
+            ", ".join(q.missing_skills) if q.missing_skills else "",
+            ", ".join(q.weak_skills) if q.weak_skills else "",
+            q.summary,
+            q.created_at.isoformat()
+        ])
         
     output.seek(0)
-    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=jd-queries.csv"})
+    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={"Content-Disposition": f"attachment; filename={CSV_JD_QUERIES_FILENAME}"})
 
-@router.get("/dashboard/stats", response_model=APIResponse[DashboardStats])
+@router.get(ADMIN_DASHBOARD_STATS_PATH, response_model=APIResponse[DashboardStats])
 def get_dashboard_stats(db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
     from sqlalchemy import func
     from app.models.queries import JDQuery
@@ -211,4 +234,4 @@ def get_dashboard_stats(db: Session = Depends(get_db), current_admin: AdminUser 
         totalResumeDownloads=total_resume_downloads,
         recentJdQueries=[JDQueryOut.model_validate(q) for q in recent_jd],
         recentContactLeads=[ContactLeadOut.model_validate(l) for l in recent_leads]
-    ).model_dump())
+    ).model_dump(by_alias=True))

@@ -1,6 +1,8 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi import HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from app.core.constants import ErrorCodes, Messages
 from app.core.correlation import get_correlation_id
@@ -55,3 +57,11 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unexpected error: {str(exc)}")
     errors = [{"message": Messages.INTERNAL_ERROR, "code": ErrorCodes.INTERNAL_SERVER_ERROR}]
     return build_error_response(Messages.INTERNAL_ERROR, errors, 500)
+
+async def http_exception_handler(request: Request, exc: HTTPException):
+    errors = [{"message": str(exc.detail), "code": ErrorCodes.VALIDATION_ERROR}]
+    return build_error_response(str(exc.detail), errors, exc.status_code)
+
+async def starlette_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    errors = [{"message": str(exc.detail), "code": "HTTP_ERROR"}]
+    return build_error_response(str(exc.detail), errors, exc.status_code)

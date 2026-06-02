@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { API_BASE_URL, STORAGE_KEYS } from '../constants';
+import { API_BASE_URL, STORAGE_KEYS, ROUTES } from '../constants';
+import { API_ROUTES } from '../constants/apiRoutes';
 import { v4 as uuidv4 } from 'uuid';
 
 export const apiClient = axios.create({
@@ -8,6 +9,10 @@ export const apiClient = axios.create({
         'Content-Type': 'application/json',
     },
 });
+
+export const getResumeDownloadUrl = () => {
+    return `${API_BASE_URL}${API_ROUTES.PROFILE_RESUME_DOWNLOAD}`;
+};
 
 apiClient.interceptors.request.use((config) => {
     // Add correlation ID
@@ -31,13 +36,13 @@ apiClient.interceptors.response.use((response) => {
 }, (error) => {
     if (error.response && error.response.status === 401) {
         // Automatically logout on 401 if it's an admin route
-        if (window.location.pathname.startsWith('/admin') && window.location.pathname !== '/admin/login') {
+        if (window.location.pathname.startsWith('/admin') && window.location.pathname !== ROUTES.ADMIN_LOGIN) {
             localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-            window.location.href = '/admin/login';
+            window.location.href = ROUTES.ADMIN_LOGIN;
         }
     }
     
     // Extract standardized error format
-    const formattedError = error.response?.data?.message || 'An unexpected error occurred';
+    const formattedError = error.response?.data?.message || error.response?.data?.detail || 'An unexpected error occurred';
     return Promise.reject(new Error(formattedError));
 });

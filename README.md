@@ -67,8 +67,13 @@ VITE_API_BASE_URL=http://localhost:8000/api/v1
    ```
 5. Seed the initial admin user:
    ```bash
-   python ../scripts/create_admin.py admin mysecurepassword123
+   python scripts/create_admin.py admin@example.com yourpassword "Admin User"
    ```
+6. Seed default portfolio data:
+   ```bash
+   python scripts/seed_portfolio.py
+   ```
+   *Note: The seed script is idempotent and safe to run multiple times. Seeded data can later be updated from the admin dashboard.*
 
 ### 3. Frontend Setup
 
@@ -108,3 +113,8 @@ You can run both the frontend, backend, and postgres services fully containerize
 docker-compose up -d
 ```
 Note: Ensure you've mounted the `uploads` directory properly for persistent resume storage if not using cloud storage.
+
+To seed the default portfolio data inside the running backend container, use:
+```bash
+docker compose exec backend python scripts/seed_portfolio.py
+```

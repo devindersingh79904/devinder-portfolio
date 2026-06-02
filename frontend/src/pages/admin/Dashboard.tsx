@@ -3,10 +3,12 @@ import { apiClient } from '@/services/api'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
+import { API_ROUTES, QUERY_KEYS } from '@/constants'
+
 export function AdminDashboard() {
   const { data: statsResp, isLoading } = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: () => apiClient.get('/admin/dashboard/stats')
+    queryKey: [QUERY_KEYS.DASHBOARD_STATS],
+    queryFn: () => apiClient.get(API_ROUTES.ADMIN_DASHBOARD_STATS)
   })
 
   if (isLoading) {
@@ -71,10 +73,10 @@ export function AdminDashboard() {
             <TableBody>
               {queries.map((q: any) => (
                 <TableRow key={q.id}>
-                  <TableCell>{new Date(q.created_at).toLocaleDateString()}</TableCell>
-                  <TableCell>{q.hr_name} @ {q.company_name}</TableCell>
-                  <TableCell className="max-w-md truncate">{q.jd_text}</TableCell>
-                  <TableCell className="font-bold text-primary">{q.match_score}%</TableCell>
+                  <TableCell>{new Date(q.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>{q.hrName} @ {q.companyName}</TableCell>
+                  <TableCell className="max-w-md truncate">{q.jdText}</TableCell>
+                  <TableCell className="font-bold text-primary">{q.matchScore}%</TableCell>
                 </TableRow>
               ))}
               {queries.length === 0 && (
@@ -101,7 +103,7 @@ export function AdminDashboard() {
             <TableBody>
               {leads.map((l: any) => (
                 <TableRow key={l.id}>
-                  <TableCell>{new Date(l.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(l.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>{l.name} ({l.email})</TableCell>
                   <TableCell>{l.subject}</TableCell>
                 </TableRow>

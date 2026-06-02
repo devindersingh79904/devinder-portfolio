@@ -1,14 +1,14 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiClient } from '@/services/api'
-import { ROUTES, STORAGE_KEYS } from '@/constants'
+import { ROUTES, STORAGE_KEYS, API_ROUTES } from '@/constants'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export function AdminLogin() {
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -19,7 +19,7 @@ export function AdminLogin() {
     setError('')
     setLoading(true)
     try {
-      const response: any = await apiClient.post('/admin/login', { username, password })
+      const response: any = await apiClient.post(API_ROUTES.ADMIN_LOGIN, { email, password })
       if (response.data?.access_token) {
         localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, response.data.access_token)
         navigate(ROUTES.ADMIN_DASHBOARD)
@@ -41,11 +41,12 @@ export function AdminLogin() {
           <form onSubmit={handleLogin} className="space-y-4">
             {error && <div className="p-3 bg-destructive/10 text-destructive rounded text-sm">{error}</div>}
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input 
-                id="username" 
-                value={username} 
-                onChange={e => setUsername(e.target.value)} 
+                id="email" 
+                type="email"
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
                 required 
               />
             </div>

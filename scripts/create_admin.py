@@ -8,19 +8,19 @@ from app.db.database import SessionLocal
 from app.models.admin import AdminUser
 from app.core.security import get_password_hash
 
-def create_admin(username: str, password: str):
+def create_admin(email: str, password: str, name: str):
     db = SessionLocal()
     try:
-        existing = db.query(AdminUser).filter(AdminUser.username == username).first()
+        existing = db.query(AdminUser).filter(AdminUser.email == email).first()
         if existing:
-            print(f"Admin user '{username}' already exists.")
+            print(f"Admin user '{email}' already exists.")
             return
             
         hashed_pw = get_password_hash(password)
-        admin = AdminUser(username=username, password_hash=hashed_pw)
+        admin = AdminUser(email=email, password_hash=hashed_pw, name=name)
         db.add(admin)
         db.commit()
-        print(f"Successfully created admin user: {username}")
+        print(f"Successfully created admin user: {email}")
     except Exception as e:
         print(f"Error creating admin: {e}")
         db.rollback()
@@ -28,10 +28,11 @@ def create_admin(username: str, password: str):
         db.close()
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python create_admin.py <username> <password>")
+    if len(sys.argv) < 3:
+        print("Usage: python create_admin.py <email> <password> [name]")
         sys.exit(1)
         
-    username = sys.argv[1]
+    email = sys.argv[1]
     password = sys.argv[2]
-    create_admin(username, password)
+    name = sys.argv[3] if len(sys.argv) > 3 else "Admin"
+    create_admin(email, password, name)

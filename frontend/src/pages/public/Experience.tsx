@@ -2,11 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/services/api'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Helmet } from 'react-helmet-async'
+import { API_ROUTES } from '@/constants'
+import { QUERY_KEYS } from '@/constants'
 
 export function PublicExperience() {
   const { data: expResp, isLoading } = useQuery({
-    queryKey: ['public-experience'],
-    queryFn: () => apiClient.get('/experience')
+    queryKey: [QUERY_KEYS.PUBLIC_EXPERIENCE],
+    queryFn: () => apiClient.get(API_ROUTES.EXPERIENCE)
   })
 
   const experiences = expResp?.data || []

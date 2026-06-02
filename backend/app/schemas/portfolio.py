@@ -1,10 +1,21 @@
 from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
 from datetime import date, datetime
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 
 class ORMBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
+
+class BaseSchema(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
 
 # -----------------
 # SKILLS
@@ -160,7 +171,7 @@ class ProfileOut(ProfileBase):
 # -----------------
 # CONTACT LEADS
 # -----------------
-class ContactLeadCreate(BaseModel):
+class ContactLeadCreate(BaseSchema):
     name: str
     email: str
     company: Optional[str] = None
@@ -178,11 +189,16 @@ class ContactLeadOut(ContactLeadCreate, ORMBase):
 from pydantic import BaseModel, ConfigDict, Field
 
 class JDQueryCreate(BaseModel):
-    hrName: Optional[str] = Field(None, alias="hr_name", validation_alias="hrName")
-    hrEmail: Optional[str] = Field(None, alias="hr_email", validation_alias="hrEmail")
-    companyName: Optional[str] = Field(None, alias="company_name", validation_alias="companyName")
-    roleTitle: Optional[str] = Field(None, alias="role_title", validation_alias="roleTitle")
-    jdText: str = Field(..., alias="jd_text", validation_alias="jdText")
+    hr_name: Optional[str] = Field(default=None, alias="hrName")
+    hr_email: Optional[str] = Field(default=None, alias="hrEmail")
+    company_name: Optional[str] = Field(default=None, alias="companyName")
+    role_title: Optional[str] = Field(default=None, alias="roleTitle")
+    jd_text: str = Field(..., alias="jdText")
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True
+    )
 
 class JDMatchResult(BaseModel):
     matchScore: float
@@ -208,9 +224,14 @@ class JDQueryOut(ORMBase):
 # ANALYTICS
 # -----------------
 class AnalyticsEventCreate(BaseModel):
-    event_type: str
-    page_url: Optional[str] = None
-    metadata_json: Optional[Dict[str, Any]] = None
+    event_type: str = Field(..., alias="eventType")
+    page_url: Optional[str] = Field(None, alias="pageUrl")
+    metadata_json: Optional[Dict[str, Any]] = Field(None, alias="metadata")
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True
+    )
 
 class AnalyticsEventOut(AnalyticsEventCreate, ORMBase):
     id: UUID

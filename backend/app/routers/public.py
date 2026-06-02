@@ -9,7 +9,8 @@ from app.utils.response import success_response
 from app.core.exceptions import PortfolioException, ErrorCodes
 from app.schemas.portfolio import (
     JDQueryCreate, ContactLeadCreate, ProfileOut, ProjectOut, 
-    ExperienceOut, EducationOut, CertificationOut, SkillOut
+    ExperienceOut, EducationOut, CertificationOut, SkillOut,
+    AnalyticsEventCreate
 )
 from app.repositories.portfolio import (
     project_repo, experience_repo, 
@@ -18,10 +19,16 @@ from app.repositories.portfolio import (
 from app.repositories.profile import profile_repo
 from app.repositories.queries import contact_lead_repo
 from app.services.jd_match import calculate_jd_match
+from app.core.constants import (
+    API_V1_PREFIX,
+    PROFILE_PATH, CONTACT_PATH, JD_MATCH_PATH, RESUME_DOWNLOAD_PATH, PROJECTS_PATH, PROJECT_DETAIL_PATH, 
+    EVENTS_PATH, EXPERIENCE_PATH, EDUCATION_PATH, CERTIFICATIONS_PATH, SKILLS_PATH,
+    EVENT_CONTACT_FORM_SUBMITTED, EVENT_JD_MATCH_SUBMITTED, EVENT_RESUME_DOWNLOAD
+)
 
-router = APIRouter(prefix="/api/v1")
+router = APIRouter(prefix=API_V1_PREFIX)
 
-@router.get("/profile", response_model=APIResponse[ProfileOut])
+@router.get(PROFILE_PATH, response_model=APIResponse[ProfileOut])
 def get_profile(db: Session = Depends(get_db)):
     # Assuming only one profile exists for the MVP
     profiles = profile_repo.get_multi(db, limit=1)
@@ -29,7 +36,7 @@ def get_profile(db: Session = Depends(get_db)):
         raise PortfolioException("Profile not found", ErrorCodes.NOT_FOUND, 404)
     return success_response(data=profiles[0])
 
-@router.get("/profile/resume/download")
+@router.get(RESUME_DOWNLOAD_PATH)
 def download_resume(request: Request, db: Session = Depends(get_db)):
     profiles = profile_repo.get_multi(db, limit=1)
     if not profiles or not profiles[0].resume_url:
@@ -44,7 +51,7 @@ def download_resume(request: Request, db: Session = Depends(get_db)):
     client_ip = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")
     analytics_event_repo.create(db, obj_in={
-        "event_type": "RESUME_DOWNLOAD", 
+        "event_type": EVENT_RESUME_DOWNLOAD, 
         "metadata_json": {"file_name": profiles[0].resume_file_name},
         "ip_address": client_ip,
         "user_agent": user_agent
@@ -52,39 +59,39 @@ def download_resume(request: Request, db: Session = Depends(get_db)):
     
     return FileResponse(path=file_path, filename=profiles[0].resume_file_name, media_type="application/pdf")
 
-@router.get("/projects", response_model=APIResponse[list[ProjectOut]])
+@router.get(PROJECTS_PATH, response_model=APIResponse[list[ProjectOut]])
 def get_projects(db: Session = Depends(get_db)):
     projects = project_repo.get_multi(db, filters={"is_active": True})
     return success_response(data=projects)
 
-@router.get("/projects/{projectId}", response_model=APIResponse[ProjectOut])
-def get_project(projectId: str, db: Session = Depends(get_db)):
-    project = project_repo.get(db, projectId)
+@router.get(PROJECT_DETAIL_PATH, response_model=APIResponse[ProjectOut])
+def get_project(project_id: str, db: Session = Depends(get_db)):
+    project = project_repo.get(db, project_id)
     if not project or not project.is_active:
         raise PortfolioException("Project not found", ErrorCodes.NOT_FOUND, 404)
     return success_response(data=project)
 
-@router.get("/experience", response_model=APIResponse[list[ExperienceOut]])
+@router.get(EXPERIENCE_PATH, response_model=APIResponse[list[ExperienceOut]])
 def get_experience(db: Session = Depends(get_db)):
     experiences = experience_repo.get_multi(db, filters={"is_active": True})
     return success_response(data=experiences)
 
-@router.get("/education", response_model=APIResponse[list[EducationOut]])
+@router.get(EDUCATION_PATH, response_model=APIResponse[list[EducationOut]])
 def get_education(db: Session = Depends(get_db)):
     educations = education_repo.get_multi(db, filters={"is_active": True})
     return success_response(data=educations)
 
-@router.get("/certifications", response_model=APIResponse[list[CertificationOut]])
+@router.get(CERTIFICATIONS_PATH, response_model=APIResponse[list[CertificationOut]])
 def get_certifications(db: Session = Depends(get_db)):
     certs = certification_repo.get_multi(db, filters={"is_active": True})
     return success_response(data=certs)
 
-@router.get("/skills", response_model=APIResponse[list[SkillOut]])
+@router.get(SKILLS_PATH, response_model=APIResponse[list[SkillOut]])
 def get_skills(db: Session = Depends(get_db)):
     skills = skill_repo.get_multi(db, filters={"is_active": True})
     return success_response(data=skills)
 
-@router.post("/contact", response_model=APIResponse)
+@router.post(CONTACT_PATH, response_model=APIResponse)
 @limiter.limit("5/hour")
 def submit_contact(request: Request, contact: ContactLeadCreate, db: Session = Depends(get_db)):
     data = contact.model_dump()
@@ -96,13 +103,13 @@ def submit_contact(request: Request, contact: ContactLeadCreate, db: Session = D
     # Log analytics
     from app.repositories.analytics import analytics_event_repo
     analytics_event_repo.create(db, obj_in={
-        "event_type": "CONTACT_FORM_SUBMIT",
+        "event_type": EVENT_CONTACT_FORM_SUBMITTED,
         "ip_address": data["ip_address"],
         "user_agent": data["user_agent"]
     })
     return success_response(message="Contact lead submitted successfully")
 
-@router.post("/jd-match", response_model=APIResponse)
+@router.post(JD_MATCH_PATH, response_model=APIResponse)
 @limiter.limit("5/hour")
 def submit_jd_match(request: Request, query: JDQueryCreate, db: Session = Depends(get_db)):
     client_ip = request.client.host if request.client else None
@@ -112,25 +119,22 @@ def submit_jd_match(request: Request, query: JDQueryCreate, db: Session = Depend
     # Log analytics
     from app.repositories.analytics import analytics_event_repo
     analytics_event_repo.create(db, obj_in={
-        "event_type": "JD_MATCH_SUBMIT",
+        "event_type": EVENT_JD_MATCH_SUBMITTED,
         "ip_address": client_ip,
         "user_agent": user_agent
     })
     return success_response(data=result.model_dump(), message="JD match calculated successfully")
 
-@router.post("/analytics/events", response_model=APIResponse)
-def submit_analytics_event(request: Request, event: dict, db: Session = Depends(get_db)):
+@router.post(EVENTS_PATH, response_model=APIResponse)
+def submit_analytics_event(request: Request, event: AnalyticsEventCreate, db: Session = Depends(get_db)):
     from app.repositories.analytics import analytics_event_repo
     client_ip = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")
-    event_type = event.get("eventType", "UNKNOWN")
-    metadata_json = event.get("metadata", {})
-    page_url = event.get("pageUrl", None)
     
     analytics_event_repo.create(db, obj_in={
-        "event_type": event_type, 
-        "metadata_json": metadata_json,
-        "page_url": page_url,
+        "event_type": event.event_type, 
+        "metadata_json": event.metadata_json,
+        "page_url": event.page_url,
         "ip_address": client_ip,
         "user_agent": user_agent
     })

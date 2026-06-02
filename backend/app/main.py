@@ -12,7 +12,9 @@ from app.core.exceptions import (
     portfolio_exception_handler,
     validation_exception_handler,
     sqlalchemy_exception_handler,
-    global_exception_handler
+    global_exception_handler,
+    http_exception_handler,
+    starlette_http_exception_handler
 )
 from app.schemas.common import APIResponse
 from app.routers import public, admin
@@ -46,6 +48,10 @@ app.add_middleware(
 app.add_exception_handler(PortfolioException, portfolio_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
+from fastapi import HTTPException
+from starlette.exceptions import HTTPException as StarletteHTTPException
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(StarletteHTTPException, starlette_http_exception_handler)
 app.add_exception_handler(Exception, global_exception_handler)
 
 # Rate limiting
@@ -55,14 +61,20 @@ setup_rate_limiting(app)
 app.include_router(public.router)
 app.include_router(admin.router)
 
+from app.core.constants import LOG_INCOMING_REQUEST, LOG_OUTGOING_RESPONSE
+
 @app.middleware("http")
 async def process_time_middleware(request: Request, call_next):
+    client_ip = request.client.host if request.client else "unknown"
+    corr_id = get_correlation_id()
+    logger.info(LOG_INCOMING_REQUEST.format(method=request.method, path=request.url.path, client_ip=client_ip, corr_id=corr_id))
+    
     start_time = time.time()
     response = await call_next(request)
-    # Ensure correlationId is added to all JSON responses if not present
-    # Usually handled at router level but we can inject here if needed.
     process_time = time.time() - start_time
-    logger.info(f"Request: {request.method} {request.url.path} completed in {process_time:.4f}s")
+    duration_ms = int(process_time * 1000)
+    
+    logger.info(LOG_OUTGOING_RESPONSE.format(method=request.method, path=request.url.path, status=response.status_code, duration_ms=duration_ms, corr_id=corr_id))
     return response
 
 @app.get("/", response_model=APIResponse)

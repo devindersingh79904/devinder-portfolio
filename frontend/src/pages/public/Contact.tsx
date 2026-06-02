@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Helmet } from 'react-helmet-async'
+import { API_ROUTES } from '@/constants'
 
 export function Contact() {
   const [formData, setFormData] = useState({
@@ -19,7 +20,7 @@ export function Contact() {
   const [success, setSuccess] = useState(false)
 
   const contactMutation = useMutation({
-    mutationFn: (data: typeof formData) => apiClient.post('/contact', data),
+    mutationFn: (data: typeof formData) => apiClient.post(API_ROUTES.CONTACT, data),
     onSuccess: () => setSuccess(true)
   })
 

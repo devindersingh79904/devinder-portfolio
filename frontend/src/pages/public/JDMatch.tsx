@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Helmet } from 'react-helmet-async'
+import { API_ROUTES } from '@/constants'
 
 export function JDMatch() {
   const [jdText, setJdText] = useState('')
@@ -16,7 +17,7 @@ export function JDMatch() {
   const [roleTitle, setRoleTitle] = useState('')
   
   const matchMutation = useMutation({
-    mutationFn: (data: any) => apiClient.post('/jd-match', data)
+    mutationFn: (data: any) => apiClient.post(API_ROUTES.JD_MATCH, data)
   })
 
   const handleSubmit = (e: React.FormEvent) => {
