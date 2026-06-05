@@ -1,28 +1,42 @@
-from fastapi import FastAPI, Depends, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.exceptions import RequestValidationError
-from sqlalchemy.exc import SQLAlchemyError
 import time
 
+from fastapi import FastAPI, Depends, Request, HTTPException
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
 from app.core.config import settings
-from app.core.logging_config import setup_logging
+from app.core.constants import (
+    ROOT_PATH,
+    HEALTH_PATH,
+    LOG_INCOMING_REQUEST,
+    LOG_OUTGOING_RESPONSE,
+    HEADER_CORRELATION_ID,
+    MSG_PORTFOLIO_API_RUNNING,
+    MSG_SERVICE_HEALTHY,
+    MSG_SERVICE_UNHEALTHY,
+    LOG_HEALTH_CHECK_FAILED,
+    ERROR_DATABASE_DOWN,
+)
 from app.core.correlation import CorrelationIdMiddleware, get_correlation_id
 from app.core.exceptions import (
     PortfolioException,
-    portfolio_exception_handler,
-    validation_exception_handler,
-    sqlalchemy_exception_handler,
     global_exception_handler,
     http_exception_handler,
-    starlette_http_exception_handler
+    portfolio_exception_handler,
+    sqlalchemy_exception_handler,
+    starlette_http_exception_handler,
+    validation_exception_handler,
 )
-from app.schemas.common import APIResponse
-from app.routers import public, admin
+from app.core.logging_config import setup_logging
 from app.core.rate_limit import setup_rate_limiting
-from sqlalchemy.orm import Session
-from sqlalchemy import text
+from app.routers import admin, metadata, public
 from app.routers.deps import get_db
-from fastapi.responses import JSONResponse
+from app.schemas.common import APIResponse
 
 # Initialize logging
 logger = setup_logging()
@@ -41,15 +55,13 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Correlation-ID"]
+    expose_headers=[HEADER_CORRELATION_ID]
 )
 
 # Global Exception Handlers
 app.add_exception_handler(PortfolioException, portfolio_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
-from fastapi import HTTPException
-from starlette.exceptions import HTTPException as StarletteHTTPException
 app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_exception_handler(StarletteHTTPException, starlette_http_exception_handler)
 app.add_exception_handler(Exception, global_exception_handler)
@@ -60,28 +72,44 @@ setup_rate_limiting(app)
 # Include Routers
 app.include_router(public.router)
 app.include_router(admin.router)
-
-from app.core.constants import LOG_INCOMING_REQUEST, LOG_OUTGOING_RESPONSE
+app.include_router(metadata.router)
 
 @app.middleware("http")
 async def process_time_middleware(request: Request, call_next):
     client_ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
     corr_id = get_correlation_id()
-    logger.info(LOG_INCOMING_REQUEST.format(method=request.method, path=request.url.path, client_ip=client_ip, corr_id=corr_id))
+    
+    query = str(request.query_params)
+    
+    logger.info(LOG_INCOMING_REQUEST.format(
+        method=request.method, 
+        path=request.url.path, 
+        query=query,
+        client_ip=client_ip, 
+        user_agent=user_agent,
+        corr_id=corr_id
+    ))
     
     start_time = time.time()
     response = await call_next(request)
     process_time = time.time() - start_time
     duration_ms = int(process_time * 1000)
     
-    logger.info(LOG_OUTGOING_RESPONSE.format(method=request.method, path=request.url.path, status=response.status_code, duration_ms=duration_ms, corr_id=corr_id))
+    logger.info(LOG_OUTGOING_RESPONSE.format(
+        method=request.method, 
+        path=request.url.path, 
+        status=response.status_code, 
+        duration_ms=duration_ms, 
+        corr_id=corr_id
+    ))
     return response
 
-@app.get("/", response_model=APIResponse)
+@app.get(ROOT_PATH, response_model=APIResponse)
 async def root():
     return APIResponse(
         success=True,
-        message="Portfolio API is running",
+        message=MSG_PORTFOLIO_API_RUNNING,
         data={
             "service": settings.APP_NAME,
             "version": settings.APP_VERSION
@@ -89,24 +117,24 @@ async def root():
         correlationId=get_correlation_id()
     )
 
-@app.get("/health", response_model=APIResponse)
+@app.get(HEALTH_PATH, response_model=APIResponse)
 async def health_check(db: Session = Depends(get_db)):
     try:
         db.execute(text("SELECT 1"))
         return APIResponse(
             success=True,
-            message="Service is healthy",
+            message=MSG_SERVICE_HEALTHY,
             data={
                 "status": "UP",
                 "database": "UP"
             },
             correlationId=get_correlation_id()
         )
-    except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
+    except Exception:
+        logger.exception(LOG_HEALTH_CHECK_FAILED)
         response = APIResponse(
             success=False,
-            message="Service is unhealthy",
+            message=MSG_SERVICE_UNHEALTHY,
             data={
                 "status": "DOWN",
                 "database": "DOWN"
@@ -115,7 +143,7 @@ async def health_check(db: Session = Depends(get_db)):
                 {
                     "field": "database",
                     "message": "Database connectivity check failed",
-                    "code": "DATABASE_DOWN"
+                    "code": ERROR_DATABASE_DOWN
                 }
             ],
             correlationId=get_correlation_id()

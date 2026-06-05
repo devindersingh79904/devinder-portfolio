@@ -10,12 +10,12 @@ import { QUERY_KEYS } from '@/constants'
 
 export function Home() {
   const { data: profileResp, isLoading: isProfileLoading } = useQuery({
-    queryKey: [QUERY_KEYS.PUBLIC_PROFILE],
+    queryKey: QUERY_KEYS.PUBLIC_PROFILE,
     queryFn: () => apiClient.get(API_ROUTES.PROFILE)
   })
 
   const { data: projectsResp } = useQuery({
-    queryKey: [QUERY_KEYS.PUBLIC_PROJECTS],
+    queryKey: QUERY_KEYS.PUBLIC_PROJECTS,
     queryFn: () => apiClient.get(API_ROUTES.PROJECTS)
   })
 

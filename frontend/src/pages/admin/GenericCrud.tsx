@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/services/api'
+import { QUERY_KEYS } from '@/constants'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
@@ -17,7 +18,8 @@ import * as z from 'zod'
 interface FieldDef {
   key: string
   label: string
-  type: 'text' | 'textarea' | 'number' | 'boolean' | 'date' | 'array'
+  type: 'text' | 'textarea' | 'number' | 'boolean' | 'date' | 'array' | 'select'
+  options?: string[]
   required?: boolean
 }
 
@@ -63,14 +65,14 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
   })
   
   const { data, isLoading } = useQuery({
-    queryKey: [endpoint, page, size],
+    queryKey: QUERY_KEYS.GENERIC_CRUD_LIST(endpoint, page, size),
     queryFn: () => apiClient.get(`${endpoint}?page=${page}&size=${size}`)
   })
 
   const createMutation = useMutation({
     mutationFn: (data: any) => apiClient.post(`${endpoint}`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [endpoint] })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GENERIC_CRUD(endpoint) })
       toast.success(`${entityName} created successfully`)
       setIsModalOpen(false)
     },
@@ -80,7 +82,7 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string, data: any }) => apiClient.put(`${endpoint}/${id}`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [endpoint] })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GENERIC_CRUD(endpoint) })
       toast.success(`${entityName} updated successfully`)
       setIsModalOpen(false)
     },
@@ -90,7 +92,7 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiClient.delete(`${endpoint}/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [endpoint] })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GENERIC_CRUD(endpoint) })
       toast.success(`${entityName} deleted successfully`)
       setDeleteId(null)
     },
@@ -165,6 +167,17 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
                 <Label htmlFor={field.key}>{field.label}</Label>
                 {field.type === 'textarea' ? (
                   <Textarea id={field.key} {...register(field.key)} />
+                ) : field.type === 'select' ? (
+                  <select
+                    id={field.key}
+                    {...register(field.key)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Select...</option>
+                    {field.options?.map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
                 ) : (
                   <Input 
                     id={field.key} 

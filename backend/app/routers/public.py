@@ -1,30 +1,53 @@
 import os
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from app.db.database import get_db
-from app.core.rate_limit import limiter
-from app.schemas.common import APIResponse
-from app.utils.response import success_response
-from app.core.exceptions import PortfolioException, ErrorCodes
-from app.schemas.portfolio import (
-    JDQueryCreate, ContactLeadCreate, ProfileOut, ProjectOut, 
-    ExperienceOut, EducationOut, CertificationOut, SkillOut,
-    AnalyticsEventCreate
+
+from app.core.constants import (
+    API_V1_PREFIX,
+    CERTIFICATIONS_PATH,
+    CONTACT_PATH,
+    EDUCATION_PATH,
+    EVENT_CONTACT_FORM_SUBMITTED,
+    EVENT_JD_MATCH_SUBMITTED,
+    EVENT_RESUME_DOWNLOAD,
+    EVENTS_PATH,
+    EXPERIENCE_PATH,
+    JD_MATCH_PATH,
+    PROFILE_PATH,
+    PROJECT_DETAIL_PATH,
+    PROJECTS_PATH,
+    RESUME_DOWNLOAD_PATH,
+    SKILLS_PATH,
 )
+from app.core.exceptions import ErrorCodes, PortfolioException
+from app.core.rate_limit import limiter
+from app.db.database import get_db
+from app.repositories.analytics import analytics_event_repo
 from app.repositories.portfolio import (
-    project_repo, experience_repo, 
-    education_repo, certification_repo, skill_repo
+    certification_repo,
+    education_repo,
+    experience_repo,
+    project_repo,
+    skill_repo,
 )
 from app.repositories.profile import profile_repo
 from app.repositories.queries import contact_lead_repo
-from app.services.jd_match import calculate_jd_match
-from app.core.constants import (
-    API_V1_PREFIX,
-    PROFILE_PATH, CONTACT_PATH, JD_MATCH_PATH, RESUME_DOWNLOAD_PATH, PROJECTS_PATH, PROJECT_DETAIL_PATH, 
-    EVENTS_PATH, EXPERIENCE_PATH, EDUCATION_PATH, CERTIFICATIONS_PATH, SKILLS_PATH,
-    EVENT_CONTACT_FORM_SUBMITTED, EVENT_JD_MATCH_SUBMITTED, EVENT_RESUME_DOWNLOAD
+from app.schemas.common import APIResponse
+from app.schemas.portfolio import (
+    AnalyticsEventCreate,
+    CertificationOut,
+    ContactLeadCreate,
+    EducationOut,
+    ExperienceOut,
+    JDQueryCreate,
+    ProfileOut,
+    ProjectOut,
+    SkillOut,
 )
+from app.services.jd_match import calculate_jd_match
+from app.utils.response import success_response
 
 router = APIRouter(prefix=API_V1_PREFIX)
 
@@ -47,7 +70,6 @@ def download_resume(request: Request, db: Session = Depends(get_db)):
         raise PortfolioException("Resume file missing from storage", ErrorCodes.NOT_FOUND, 404)
         
     # Log analytics event
-    from app.repositories.analytics import analytics_event_repo
     client_ip = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")
     analytics_event_repo.create(db, obj_in={
@@ -101,7 +123,6 @@ def submit_contact(request: Request, contact: ContactLeadCreate, db: Session = D
     contact_lead_repo.create(db, obj_in=data)
     
     # Log analytics
-    from app.repositories.analytics import analytics_event_repo
     analytics_event_repo.create(db, obj_in={
         "event_type": EVENT_CONTACT_FORM_SUBMITTED,
         "ip_address": data["ip_address"],
@@ -117,7 +138,6 @@ def submit_jd_match(request: Request, query: JDQueryCreate, db: Session = Depend
     result = calculate_jd_match(db, query, ip_address=client_ip, user_agent=user_agent)
     
     # Log analytics
-    from app.repositories.analytics import analytics_event_repo
     analytics_event_repo.create(db, obj_in={
         "event_type": EVENT_JD_MATCH_SUBMITTED,
         "ip_address": client_ip,
@@ -127,7 +147,6 @@ def submit_jd_match(request: Request, query: JDQueryCreate, db: Session = Depend
 
 @router.post(EVENTS_PATH, response_model=APIResponse)
 def submit_analytics_event(request: Request, event: AnalyticsEventCreate, db: Session = Depends(get_db)):
-    from app.repositories.analytics import analytics_event_repo
     client_ip = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")
     

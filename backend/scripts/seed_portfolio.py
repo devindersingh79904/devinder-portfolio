@@ -5,7 +5,8 @@ from datetime import datetime
 # Add the root backend folder to sys.path to allow imports when running directly
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.db.session import SessionLocal
+from app.core.config import settings
+from app.db.database import SessionLocal
 from app.models.profile import Profile
 from app.models.portfolio import Skill, Experience, Project, Education, Certification
 from app.core.default_seed_data import (
@@ -18,6 +19,10 @@ from app.core.default_seed_data import (
 )
 
 def seed_portfolio():
+    if not settings.ENABLE_DEFAULT_SEED:
+        print("Default seed is disabled. Set ENABLE_DEFAULT_SEED=true to run seeding.")
+        return
+
     print("Seeding portfolio data...")
     db = SessionLocal()
     try:
@@ -108,7 +113,8 @@ def seed_portfolio():
         db.commit()
         print("Certifications seeded/updated")
 
-        print("Portfolio seed completed successfully")
+        print("Portfolio default seed completed successfully.")
+        print("You can now update this data from the admin dashboard.")
     except Exception as e:
         db.rollback()
         print(f"Error seeding data: {e}")

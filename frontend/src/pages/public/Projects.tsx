@@ -10,7 +10,7 @@ import { QUERY_KEYS } from '@/constants'
 
 export function PublicProjects() {
   const { data: projectsResp, isLoading } = useQuery({
-    queryKey: [QUERY_KEYS.PUBLIC_PROJECTS],
+    queryKey: QUERY_KEYS.PUBLIC_PROJECTS,
     queryFn: () => apiClient.get(API_ROUTES.PROJECTS)
   })
 

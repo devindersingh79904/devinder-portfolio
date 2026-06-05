@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     
     CORS_ALLOWED_ORIGINS: str = "http://localhost:5173"
     
+    ENABLE_DEFAULT_SEED: bool = True
+    AUTO_SEED_ON_STARTUP: bool = False
+    
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
     
     @property

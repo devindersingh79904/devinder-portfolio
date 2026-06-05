@@ -7,7 +7,7 @@ import { QUERY_KEYS } from '@/constants'
 
 export function PublicCertifications() {
   const { data: certsResp, isLoading } = useQuery({
-    queryKey: [QUERY_KEYS.PUBLIC_CERTS],
+    queryKey: QUERY_KEYS.PUBLIC_CERTS,
     queryFn: () => apiClient.get(API_ROUTES.CERTIFICATIONS)
   })
 

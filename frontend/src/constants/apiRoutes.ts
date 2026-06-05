@@ -41,5 +41,7 @@ export const API_ROUTES = {
 
   ADMIN_CONTACT_LEADS: "/admin/contact-leads",
   ADMIN_CONTACT_LEAD_DETAIL: (id: string) => `/admin/contact-leads/${id}`,
-  ADMIN_CONTACT_LEADS_EXPORT: "/admin/contact-leads/export",
+  ADMIN_CONTACT_LEADS_EXPORT: '/admin/contact-leads/export',
+
+  METADATA_ENUMS: '/metadata/enums',
 } as const;

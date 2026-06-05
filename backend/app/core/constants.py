@@ -20,6 +20,10 @@ EDUCATION_PATH = "/education"
 CERTIFICATIONS_PATH = "/certifications"
 SKILLS_PATH = "/skills"
 
+# Metadata Endpoints
+METADATA_PREFIX = "/metadata"
+ENUMS_PATH = "/enums"
+
 # Admin Endpoints
 ADMIN_PREFIX = "/admin"
 ADMIN_LOGIN_PATH = "/login"
@@ -55,9 +59,11 @@ CORRELATION_ID_HEADER = HEADER_CORRELATION_ID  # For backwards compatibility if 
 # API Messages
 MSG_LOGIN_SUCCESS = "Login successful"
 MSG_DASHBOARD_STATS_FETCHED = "Dashboard stats fetched successfully"
+MSG_PORTFOLIO_API_RUNNING = "Portfolio API is running"
 MSG_SERVICE_HEALTHY = "Service is healthy"
 MSG_SERVICE_UNHEALTHY = "Service is unhealthy"
 MSG_SUCCESS = "Success"
+MSG_ENUMS_FETCHED = "Enums fetched successfully"
 MSG_VALIDATION_FAILED = "Validation failed"
 MSG_INTERNAL_ERROR = "An unexpected error occurred"
 MSG_ITEM_NOT_FOUND = "Item not found"
@@ -106,5 +112,14 @@ CSV_JD_QUERIES_FILENAME = "jd-queries.csv"
 CSV_CONTACT_LEADS_FILENAME = "contact-leads.csv"
 
 # Log Message Templates
-LOG_INCOMING_REQUEST = "Incoming request method={method} path={path} client={client_ip} corr_id={corr_id}"
-LOG_OUTGOING_RESPONSE = "Outgoing response method={method} path={path} status={status} durationMs={duration_ms} corr_id={corr_id}"
+LOG_INCOMING_REQUEST = (
+    "Incoming request method={method} path={path} query={query} "
+    "clientIp={client_ip} userAgent={user_agent} correlationId={corr_id}"
+)
+
+LOG_OUTGOING_RESPONSE = (
+    "Outgoing response method={method} path={path} "
+    "status={status} durationMs={duration_ms} correlationId={corr_id}"
+)
+
+LOG_HEALTH_CHECK_FAILED = "Health check failed"

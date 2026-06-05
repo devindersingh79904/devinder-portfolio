@@ -1,45 +1,81 @@
+import csv
 import os
 import shutil
 from datetime import datetime, timezone
-from typing import Optional
-from fastapi import APIRouter, Depends, UploadFile, File, Form
-from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
-import csv
 from io import StringIO
+from typing import Optional
 
-from app.db.database import get_db
-from app.core.security import verify_password, create_access_token
-from app.core.exceptions import PortfolioException, ErrorCodes
-from app.schemas.common import APIResponse
-from app.utils.response import success_response
-from app.utils.pagination import build_pagination
-from app.routers.deps import get_current_admin
-from app.models.admin import AdminUser
+from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi.responses import StreamingResponse
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 
-from app.schemas.admin import AdminLogin, Token, DashboardStats
-from app.schemas.portfolio import (
-    ProjectCreate, ProjectUpdate, ProjectOut,
-    ExperienceCreate, ExperienceUpdate, ExperienceOut,
-    EducationCreate, EducationUpdate, EducationOut,
-    CertificationCreate, CertificationUpdate, CertificationOut,
-    SkillCreate, SkillUpdate, SkillOut,
-    ProfileUpdate, ProfileOut,
-    JDQueryOut, ContactLeadOut
+from app.core.constants import (
+    ADMIN_CERTIFICATION_DETAIL_PATH,
+    ADMIN_CERTIFICATIONS_PATH,
+    ADMIN_CONTACT_LEADS_EXPORT_PATH,
+    ADMIN_CONTACT_LEAD_DETAIL_PATH,
+    ADMIN_CONTACT_LEADS_PATH,
+    ADMIN_DASHBOARD_STATS_PATH,
+    ADMIN_EDUCATION_DETAIL_PATH,
+    ADMIN_EDUCATION_PATH,
+    ADMIN_EXPERIENCE_DETAIL_PATH,
+    ADMIN_EXPERIENCE_PATH,
+    ADMIN_JD_QUERIES_EXPORT_PATH,
+    ADMIN_JD_QUERY_DETAIL_PATH,
+    ADMIN_JD_QUERIES_PATH,
+    ADMIN_LOGIN_PATH,
+    ADMIN_PREFIX,
+    ADMIN_PROFILE_PATH,
+    ADMIN_PROFILE_RESUME_PATH,
+    ADMIN_PROJECT_DETAIL_PATH,
+    ADMIN_PROJECTS_PATH,
+    ADMIN_SKILL_DETAIL_PATH,
+    ADMIN_SKILLS_PATH,
+    CSV_CONTACT_LEADS_FILENAME,
+    CSV_JD_QUERIES_FILENAME,
 )
+from app.core.exceptions import ErrorCodes, PortfolioException
+from app.core.security import create_access_token, verify_password
+from app.db.database import get_db
+from app.models.admin import AdminUser
+from app.models.analytics import AnalyticsEvent
+from app.models.queries import JDQuery
 from app.repositories.portfolio import (
-    project_repo, experience_repo, 
-    education_repo, certification_repo, skill_repo
+    certification_repo,
+    education_repo,
+    experience_repo,
+    project_repo,
+    skill_repo,
 )
 from app.repositories.profile import profile_repo
 from app.repositories.queries import contact_lead_repo, jd_query_repo
-
-from app.core.constants import (
-    ADMIN_PREFIX, ADMIN_LOGIN_PATH, ADMIN_PROFILE_PATH, ADMIN_PROFILE_RESUME_PATH,
-    ADMIN_PROJECTS_PATH, ADMIN_EXPERIENCE_PATH, ADMIN_EDUCATION_PATH, ADMIN_CERTIFICATIONS_PATH, ADMIN_SKILLS_PATH,
-    ADMIN_JD_QUERIES_PATH, ADMIN_JD_QUERIES_EXPORT_PATH, ADMIN_CONTACT_LEADS_PATH, ADMIN_CONTACT_LEADS_EXPORT_PATH,
-    CSV_CONTACT_LEADS_FILENAME, CSV_JD_QUERIES_FILENAME, ADMIN_DASHBOARD_STATS_PATH
+from app.routers.deps import get_current_admin
+from app.schemas.admin import AdminLogin, DashboardStats, Token
+from app.schemas.common import APIResponse
+from app.schemas.portfolio import (
+    CertificationCreate,
+    CertificationOut,
+    CertificationUpdate,
+    ContactLeadOut,
+    EducationCreate,
+    EducationOut,
+    EducationUpdate,
+    ExperienceCreate,
+    ExperienceOut,
+    ExperienceUpdate,
+    JDQueryOut,
+    ProfileOut,
+    ProfileUpdate,
+    ProjectCreate,
+    ProjectOut,
+    ProjectUpdate,
+    SkillCreate,
+    SkillOut,
+    SkillUpdate,
 )
+from app.utils.pagination import build_pagination
+from app.utils.response import success_response
 
 router = APIRouter(prefix=f"/api/v1{ADMIN_PREFIX}")
 
@@ -104,29 +140,29 @@ def upload_resume(
     return success_response(message="Resume uploaded successfully")
 
 # Generic CRUD generator
-def register_crud(router: APIRouter, path: str, repo, out_schema, create_schema, update_schema):
-    @router.get(f"{path}")
+def register_crud(router: APIRouter, path: str, path_detail: str, repo, out_schema, create_schema, update_schema):
+    @router.get(path)
     def read_items(page: int = 0, size: int = 10, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
         total = repo.count(db, filters={"is_active": True})
         items = repo.get_multi(db, skip=page*size, limit=size, filters={"is_active": True})
         schema_items = [out_schema.model_validate(item) for item in items]
         return success_response(data=build_pagination(schema_items, page, size, total).model_dump(by_alias=True))
         
-    @router.get(f"{path}/{{item_id}}")
+    @router.get(path_detail)
     def read_item(item_id: str, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
         item = repo.get(db, item_id)
         if not item or not item.is_active:
             raise PortfolioException("Item not found", ErrorCodes.NOT_FOUND, 404)
         return success_response(data=item)
         
-    @router.post(f"{path}")
+    @router.post(path)
     def create_item(item_in: create_schema, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
         data = item_in.model_dump()
         data["updated_by"] = current_admin.email
         item = repo.create(db, obj_in=data)
         return success_response(data=item)
         
-    @router.put(f"{path}/{{item_id}}")
+    @router.put(path_detail)
     def update_item(item_id: str, item_in: update_schema, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
         item = repo.get(db, item_id)
         if not item or not item.is_active:
@@ -136,18 +172,18 @@ def register_crud(router: APIRouter, path: str, repo, out_schema, create_schema,
         item = repo.update(db, db_obj=item, obj_in=data)
         return success_response(data=item)
         
-    @router.delete(f"{path}/{{item_id}}")
+    @router.delete(path_detail)
     def delete_item(item_id: str, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
         item = repo.soft_delete(db, id=item_id)
         if not item:
             raise PortfolioException("Item not found", ErrorCodes.NOT_FOUND, 404)
         return success_response(message="Item deleted successfully")
 
-register_crud(router, ADMIN_PROJECTS_PATH, project_repo, ProjectOut, ProjectCreate, ProjectUpdate)
-register_crud(router, ADMIN_EXPERIENCE_PATH, experience_repo, ExperienceOut, ExperienceCreate, ExperienceUpdate)
-register_crud(router, ADMIN_EDUCATION_PATH, education_repo, EducationOut, EducationCreate, EducationUpdate)
-register_crud(router, ADMIN_CERTIFICATIONS_PATH, certification_repo, CertificationOut, CertificationCreate, CertificationUpdate)
-register_crud(router, ADMIN_SKILLS_PATH, skill_repo, SkillOut, SkillCreate, SkillUpdate)
+register_crud(router, ADMIN_PROJECTS_PATH, ADMIN_PROJECT_DETAIL_PATH, project_repo, ProjectOut, ProjectCreate, ProjectUpdate)
+register_crud(router, ADMIN_EXPERIENCE_PATH, ADMIN_EXPERIENCE_DETAIL_PATH, experience_repo, ExperienceOut, ExperienceCreate, ExperienceUpdate)
+register_crud(router, ADMIN_EDUCATION_PATH, ADMIN_EDUCATION_DETAIL_PATH, education_repo, EducationOut, EducationCreate, EducationUpdate)
+register_crud(router, ADMIN_CERTIFICATIONS_PATH, ADMIN_CERTIFICATION_DETAIL_PATH, certification_repo, CertificationOut, CertificationCreate, CertificationUpdate)
+register_crud(router, ADMIN_SKILLS_PATH, ADMIN_SKILL_DETAIL_PATH, skill_repo, SkillOut, SkillCreate, SkillUpdate)
 
 # Queries and Leads
 @router.get(ADMIN_JD_QUERIES_PATH)
@@ -157,7 +193,7 @@ def get_jd_queries(page: int = 0, size: int = 10, db: Session = Depends(get_db),
     schema_items = [JDQueryOut.model_validate(item) for item in items]
     return success_response(data=build_pagination(schema_items, page, size, total).model_dump(by_alias=True))
 
-@router.delete(ADMIN_JD_QUERIES_PATH + "/{query_id}")
+@router.delete(ADMIN_JD_QUERY_DETAIL_PATH)
 def delete_jd_query(query_id: str, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
     jd_query_repo.remove(db, id=query_id)
     return success_response(message="Query deleted successfully")
@@ -169,7 +205,7 @@ def get_contact_leads(page: int = 0, size: int = 10, db: Session = Depends(get_d
     schema_items = [ContactLeadOut.model_validate(item) for item in items]
     return success_response(data=build_pagination(schema_items, page, size, total).model_dump(by_alias=True))
 
-@router.delete(ADMIN_CONTACT_LEADS_PATH + "/{lead_id}")
+@router.delete(ADMIN_CONTACT_LEAD_DETAIL_PATH)
 def delete_contact_lead(lead_id: str, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
     contact_lead_repo.remove(db, id=lead_id)
     return success_response(message="Lead deleted successfully")
@@ -214,10 +250,6 @@ def export_jd_queries(db: Session = Depends(get_db), current_admin: AdminUser = 
 
 @router.get(ADMIN_DASHBOARD_STATS_PATH, response_model=APIResponse[DashboardStats])
 def get_dashboard_stats(db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
-    from sqlalchemy import func
-    from app.models.queries import JDQuery
-    from app.models.analytics import AnalyticsEvent
-    
     total_jd_queries = jd_query_repo.count(db)
     avg_score_row = db.query(func.avg(JDQuery.match_score)).first()
     average_match_score = float(avg_score_row[0]) if avg_score_row and avg_score_row[0] else 0.0

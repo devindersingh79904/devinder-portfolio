@@ -17,7 +17,7 @@ export function AdminProfile() {
   const { register, handleSubmit, reset } = useForm()
 
   const { data: profileResp, isLoading } = useQuery({
-    queryKey: [QUERY_KEYS.ADMIN_PROFILE],
+    queryKey: QUERY_KEYS.ADMIN_PROFILE,
     queryFn: () => apiClient.get(API_ROUTES.ADMIN_PROFILE)
   })
   const profile = profileResp?.data
@@ -41,7 +41,7 @@ export function AdminProfile() {
   const profileMutation = useMutation({
     mutationFn: (data: any) => apiClient.put(API_ROUTES.ADMIN_PROFILE, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ADMIN_PROFILE] })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN_PROFILE })
       toast.success('Profile details updated successfully!')
     },
     onError: () => toast.error('Failed to update profile details')
@@ -52,7 +52,7 @@ export function AdminProfile() {
       headers: { 'Content-Type': 'multipart/form-data' }
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ADMIN_PROFILE] })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN_PROFILE })
       toast.success('Resume uploaded successfully!')
       setFile(null)
     },

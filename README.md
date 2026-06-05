@@ -23,12 +23,19 @@ You must create a `.env` file in the `backend/` directory:
 DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/portfolio_db
 JWT_SECRET_KEY=your_super_secret_key_here
 JWT_EXPIRE_MINUTES=1440
+
+ENABLE_DEFAULT_SEED=true
+AUTO_SEED_ON_STARTUP=false
+UPLOAD_DIR=uploads
+MAX_RESUME_SIZE_MB=10
 ```
 
 You must also create a `.env` file in the `frontend/` directory (or use `.env.example`):
 
 ```env
 VITE_API_BASE_URL=http://localhost:8000/api/v1
+VITE_APP_NAME="Devinder Portfolio"
+VITE_ENABLE_ANALYTICS=true
 ```
 
 ## Step-by-Step Setup Instructions
@@ -73,7 +80,7 @@ VITE_API_BASE_URL=http://localhost:8000/api/v1
    ```bash
    python scripts/seed_portfolio.py
    ```
-   *Note: The seed script is idempotent and safe to run multiple times. Seeded data can later be updated from the admin dashboard.*
+   *Note: `ENABLE_DEFAULT_SEED=true` allows default portfolio seed. `ENABLE_DEFAULT_SEED=false` makes the seed script exit safely. `AUTO_SEED_ON_STARTUP=false` is recommended to prevent accidental seeding.*
 
 ### 3. Frontend Setup
 

@@ -7,7 +7,7 @@ import { QUERY_KEYS } from '@/constants'
 
 export function PublicExperience() {
   const { data: expResp, isLoading } = useQuery({
-    queryKey: [QUERY_KEYS.PUBLIC_EXPERIENCE],
+    queryKey: QUERY_KEYS.PUBLIC_EXPERIENCE,
     queryFn: () => apiClient.get(API_ROUTES.EXPERIENCE)
   })
 
@@ -31,7 +31,7 @@ export function PublicExperience() {
                   <CardDescription className="text-lg font-medium">{e.company}</CardDescription>
                 </div>
                 <div className="text-muted-foreground text-sm">
-                  {new Date(e.start_date).toLocaleDateString()} - {e.end_date ? new Date(e.end_date).toLocaleDateString() : 'Present'}
+                  {new Date(e.startDate).toLocaleDateString()} - {e.endDate ? new Date(e.endDate).toLocaleDateString() : 'Present'}
                 </div>
               </div>
             </CardHeader>

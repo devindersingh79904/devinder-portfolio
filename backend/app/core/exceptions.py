@@ -49,12 +49,12 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return build_error_response(Messages.VALIDATION_FAILED, errors, 422)
 
 async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
-    logger.error(f"Database error: {str(exc)}")
+    logger.exception("Database error")
     errors = [{"message": "Database operation failed", "code": ErrorCodes.DATABASE_ERROR}]
     return build_error_response("Database Error", errors, 500)
 
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unexpected error: {str(exc)}")
+    logger.exception("Unexpected error")
     errors = [{"message": Messages.INTERNAL_ERROR, "code": ErrorCodes.INTERNAL_SERVER_ERROR}]
     return build_error_response(Messages.INTERNAL_ERROR, errors, 500)
 

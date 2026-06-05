@@ -7,7 +7,7 @@ import { API_ROUTES, QUERY_KEYS } from '@/constants'
 
 export function AdminDashboard() {
   const { data: statsResp, isLoading } = useQuery({
-    queryKey: [QUERY_KEYS.DASHBOARD_STATS],
+    queryKey: QUERY_KEYS.DASHBOARD_STATS,
     queryFn: () => apiClient.get(API_ROUTES.ADMIN_DASHBOARD_STATS)
   })
 

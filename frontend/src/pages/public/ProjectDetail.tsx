@@ -12,7 +12,7 @@ export function ProjectDetail() {
   const { projectId } = useParams<{ projectId: string }>()
 
   const { data: response, isLoading, isError } = useQuery({
-    queryKey: [QUERY_KEYS.PROJECT_DETAIL, projectId],
+    queryKey: QUERY_KEYS.PROJECT_DETAIL(projectId!),
     queryFn: () => apiClient.get(API_ROUTES.PROJECT_DETAIL(projectId as string)),
     enabled: !!projectId
   })
