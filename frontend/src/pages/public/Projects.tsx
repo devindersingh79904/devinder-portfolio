@@ -7,6 +7,8 @@ import { Link } from 'react-router-dom'
 import { API_ROUTES } from '@/constants/apiRoutes'
 import { ROUTES } from '@/constants/routes'
 import { QUERY_KEYS } from '@/constants'
+import { trackEvent } from '@/services/analytics'
+import { ANALYTICS_EVENTS } from '@/constants/analyticsEvents'
 
 export function PublicProjects() {
   const { data: projectsResp, isLoading } = useQuery({
@@ -19,7 +21,7 @@ export function PublicProjects() {
   if (isLoading) return <div className="p-8">Loading projects...</div>
 
   return (
-    <div className="container mx-auto p-8 space-y-8">
+    <div className="container mx-auto p-4 sm:p-8 space-y-8">
       <Helmet>
         <title>Projects - Portfolio</title>
       </Helmet>
@@ -41,7 +43,12 @@ export function PublicProjects() {
               )}
               <div className="flex gap-4">
                 <Button variant="default" className="p-0 px-4" asChild>
-                  <Link to={ROUTES.PROJECT_DETAIL_BUILD(p.id)}>View Details</Link>
+                  <Link
+                    to={ROUTES.PROJECT_DETAIL_BUILD(p.id)}
+                    onClick={() => trackEvent(ANALYTICS_EVENTS.PROJECT_CLICKED, undefined, { projectId: p.id, title: p.title })}
+                  >
+                    View Details
+                  </Link>
                 </Button>
                 {p.liveUrl && (
                   <Button variant="link" className="p-0" asChild>

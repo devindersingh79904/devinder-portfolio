@@ -1,8 +1,10 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
 from pydantic.alias_generators import to_camel
 from datetime import date, datetime
 from typing import Optional, List, Dict, Any
 from uuid import UUID
+
+from app.core.enums import CertificationStatus
 
 class ORMBase(BaseModel):
     model_config = ConfigDict(
@@ -46,8 +48,8 @@ class ProjectBase(ORMBase):
     short_description: Optional[str] = None
     detailed_description: Optional[str] = None
     problem_solved: Optional[str] = None
-    tech_stack: Optional[Dict[str, Any]] = None
-    features: Optional[Dict[str, Any]] = None
+    tech_stack: Optional[List[str]] = None
+    features: Optional[List[str]] = None
     github_url: Optional[str] = None
     live_url: Optional[str] = None
     demo_url: Optional[str] = None
@@ -76,8 +78,8 @@ class ExperienceBase(ORMBase):
     end_date: Optional[date] = None
     is_current: bool = False
     summary: Optional[str] = None
-    tech_stack: Optional[Dict[str, Any]] = None
-    achievements: Optional[Dict[str, Any]] = None
+    tech_stack: Optional[List[str]] = None
+    achievements: Optional[List[str]] = None
     display_order: int = 0
     is_active: bool = True
 
@@ -126,7 +128,7 @@ class CertificationBase(ORMBase):
     expiry_date: Optional[date] = None
     credential_id: Optional[str] = None
     credential_url: Optional[str] = None
-    skills: Optional[Dict[str, Any]] = None
+    skills: Optional[List[str]] = None
     display_order: int = 0
     is_active: bool = True
 
@@ -139,6 +141,16 @@ class CertificationUpdate(CertificationBase):
 
 class CertificationOut(CertificationBase):
     id: UUID
+
+    @computed_field
+    @property
+    def status(self) -> str:
+        # Status is derived from expiry_date, not stored.
+        if self.expiry_date is None:
+            return CertificationStatus.NO_EXPIRY.value
+        if self.expiry_date < date.today():
+            return CertificationStatus.EXPIRED.value
+        return CertificationStatus.ACTIVE.value
 
 # -----------------
 # PROFILE

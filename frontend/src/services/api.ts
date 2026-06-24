@@ -14,6 +14,20 @@ export const getResumeDownloadUrl = () => {
     return `${API_BASE_URL}${API_ROUTES.PROFILE_RESUME_DOWNLOAD}`;
 };
 
+// Download an authenticated file (e.g. CSV export) as a blob and trigger a save.
+// Bypasses the JSON-unwrapping flow by requesting responseType 'blob'.
+export const downloadFile = async (endpoint: string, filename: string) => {
+    const blob: any = await apiClient.get(endpoint, { responseType: 'blob' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+};
+
 apiClient.interceptors.request.use((config) => {
     // Add correlation ID
     if (!config.headers['X-Correlation-ID']) {

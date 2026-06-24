@@ -22,6 +22,9 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             for key, value in filters.items():
                 if hasattr(self.model, key):
                     query = query.filter(getattr(self.model, key) == value)
+        # Honor display_order for portfolio content so the seeded/admin ordering is respected.
+        if hasattr(self.model, "display_order"):
+            query = query.order_by(self.model.display_order)
         return query.offset(skip).limit(limit).all()
         
     def count(self, db: Session, filters: dict = None) -> int:

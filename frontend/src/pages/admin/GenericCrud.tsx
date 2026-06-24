@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiClient } from '@/services/api'
+import { apiClient, downloadFile } from '@/services/api'
 import { QUERY_KEYS } from '@/constants'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -29,9 +29,10 @@ interface GenericCrudProps {
   columns: { key: string; label: string }[]
   fields?: FieldDef[]
   readOnly?: boolean
+  exportEndpoint?: string
 }
 
-export function GenericCrud({ entityName, endpoint, columns, fields = [], readOnly = false }: GenericCrudProps) {
+export function GenericCrud({ entityName, endpoint, columns, fields = [], readOnly = false, exportEndpoint }: GenericCrudProps) {
   const queryClient = useQueryClient()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -149,11 +150,28 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-4xl font-bold">{entityName} Management</h1>
-        {!readOnly && (
-          <Button onClick={openAddModal}>Add New {entityName}</Button>
-        )}
+      <div className="flex flex-wrap gap-3 justify-between items-center">
+        <h1 className="text-3xl md:text-4xl font-bold">{entityName} Management</h1>
+        <div className="flex gap-2">
+          {exportEndpoint && (
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await downloadFile(exportEndpoint, `${entityName.toLowerCase().replace(/\s+/g, '-')}.csv`)
+                  toast.success('Export downloaded')
+                } catch {
+                  toast.error('Failed to export CSV')
+                }
+              }}
+            >
+              Export CSV
+            </Button>
+          )}
+          {!readOnly && (
+            <Button onClick={openAddModal}>Add New {entityName}</Button>
+          )}
+        </div>
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -167,6 +185,16 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
                 <Label htmlFor={field.key}>{field.label}</Label>
                 {field.type === 'textarea' ? (
                   <Textarea id={field.key} {...register(field.key)} />
+                ) : field.type === 'boolean' ? (
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      id={field.key}
+                      {...register(field.key)}
+                      className="h-4 w-4 rounded border-input accent-primary"
+                    />
+                    <span className="text-muted-foreground">Enabled</span>
+                  </label>
                 ) : field.type === 'select' ? (
                   <select
                     id={field.key}
@@ -207,6 +235,7 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
           <CardTitle>All {entityName}</CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -217,9 +246,17 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
             <TableBody>
               {items.map((item: any) => (
                 <TableRow key={item.id}>
-                  {columns.map(col => (
-                    <TableCell key={col.key} className="truncate max-w-[200px]">{item[col.key]}</TableCell>
-                  ))}
+                  {columns.map(col => {
+                    const value = item[col.key]
+                    const display = typeof value === 'boolean'
+                      ? (value ? 'Yes' : 'No')
+                      : Array.isArray(value)
+                        ? value.join(', ')
+                        : value
+                    return (
+                      <TableCell key={col.key} className="truncate max-w-[200px]">{display}</TableCell>
+                    )
+                  })}
                   {!readOnly && (
                     <TableCell>
                       <div className="flex space-x-2">
@@ -245,8 +282,9 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
               )}
             </TableBody>
           </Table>
-          
-          <div className="flex items-center justify-between px-2 mt-4">
+          </div>
+
+          <div className="flex flex-wrap gap-3 items-center justify-between px-2 mt-4">
             <div className="flex items-center space-x-2 text-sm text-muted-foreground">
               <span>Rows per page</span>
               <select 

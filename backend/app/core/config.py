@@ -16,7 +16,10 @@ class Settings(BaseSettings):
     
     ENABLE_DEFAULT_SEED: bool = True
     AUTO_SEED_ON_STARTUP: bool = False
-    
+
+    UPLOAD_DIR: str = "uploads/resume"
+    MAX_RESUME_SIZE_MB: int = 10
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
     
     @property

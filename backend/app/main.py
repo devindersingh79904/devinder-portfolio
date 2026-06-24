@@ -1,4 +1,5 @@
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi.exceptions import RequestValidationError
@@ -41,9 +42,33 @@ from app.schemas.common import APIResponse
 # Initialize logging
 logger = setup_logging()
 
+# Query params that must never be written to logs in cleartext.
+SENSITIVE_QUERY_KEYS = {"password", "token", "access_token", "secret", "api_key", "apikey", "authorization"}
+
+
+def _redact_query(params) -> str:
+    return "&".join(
+        f"{k}=***" if k.lower() in SENSITIVE_QUERY_KEYS else f"{k}={v}"
+        for k, v in params.items()
+    )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Optional auto-seed on startup. Idempotent and also gated by ENABLE_DEFAULT_SEED.
+    if settings.AUTO_SEED_ON_STARTUP:
+        try:
+            from scripts.seed_portfolio import seed_portfolio
+            seed_portfolio()
+        except Exception:
+            logger.exception("Auto-seed on startup failed")
+    yield
+
+
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
+    lifespan=lifespan,
 )
 
 # Middleware
@@ -80,8 +105,8 @@ async def process_time_middleware(request: Request, call_next):
     user_agent = request.headers.get("user-agent", "unknown")
     corr_id = get_correlation_id()
     
-    query = str(request.query_params)
-    
+    query = _redact_query(request.query_params)
+
     logger.info(LOG_INCOMING_REQUEST.format(
         method=request.method, 
         path=request.url.path, 

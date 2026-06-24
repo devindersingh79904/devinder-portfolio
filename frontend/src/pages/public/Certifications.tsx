@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/services/api'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Helmet } from 'react-helmet-async'
 import { API_ROUTES } from '@/constants'
 import { QUERY_KEYS } from '@/constants'
@@ -16,7 +17,7 @@ export function PublicCertifications() {
   if (isLoading) return <div className="p-8">Loading certifications...</div>
 
   return (
-    <div className="container mx-auto p-8 space-y-8 max-w-4xl">
+    <div className="container mx-auto p-4 sm:p-8 space-y-8 max-w-4xl">
       <Helmet>
         <title>Certifications - Portfolio</title>
       </Helmet>
@@ -25,13 +26,25 @@ export function PublicCertifications() {
         {certs.map((c: any) => (
           <Card key={c.id}>
             <CardHeader>
-              <CardTitle>{c.name}</CardTitle>
+              <div className="flex items-start justify-between gap-2">
+                <CardTitle>{c.title}</CardTitle>
+                {c.status && (
+                  <Badge variant={c.status === 'Expired' ? 'destructive' : 'secondary'}>{c.status}</Badge>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="font-medium text-muted-foreground">{c.issuer}</div>
-              {c.date_issued && <div className="text-sm mt-1">{new Date(c.date_issued).toLocaleDateString()}</div>}
-              {c.link && (
-                <a href={c.link} target="_blank" rel="noreferrer" className="text-primary text-sm mt-2 block hover:underline">
+              {c.issueDate && <div className="text-sm mt-1">{new Date(c.issueDate).toLocaleDateString()}</div>}
+              {Array.isArray(c.skills) && c.skills.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {c.skills.map((s: string) => (
+                    <span key={s} className="px-2 py-1 bg-secondary text-secondary-foreground rounded text-xs">{s}</span>
+                  ))}
+                </div>
+              )}
+              {c.credentialUrl && (
+                <a href={c.credentialUrl} target="_blank" rel="noreferrer" className="text-primary text-sm mt-3 block hover:underline">
                   View Credential
                 </a>
               )}

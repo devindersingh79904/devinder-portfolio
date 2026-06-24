@@ -64,8 +64,15 @@ def download_resume(request: Request, db: Session = Depends(get_db)):
     profiles = profile_repo.get_multi(db, limit=1)
     if not profiles or not profiles[0].resume_url:
         raise PortfolioException("Resume not found", ErrorCodes.NOT_FOUND, 404)
-        
-    file_path = profiles[0].resume_url
+
+    # resume_url is a relative key; resolve it against the backend root (and accept
+    # legacy absolute paths for backward compatibility).
+    stored = profiles[0].resume_url
+    if os.path.isabs(stored):
+        file_path = stored
+    else:
+        backend_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        file_path = os.path.join(backend_root, stored)
     if not os.path.exists(file_path):
         raise PortfolioException("Resume file missing from storage", ErrorCodes.NOT_FOUND, 404)
         

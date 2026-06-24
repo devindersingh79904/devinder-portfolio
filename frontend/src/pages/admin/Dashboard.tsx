@@ -60,7 +60,7 @@ export function AdminDashboard() {
 
       <div className="space-y-6">
         <h2 className="text-2xl font-semibold">Recent JD Queries</h2>
-        <Card>
+        <Card className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -91,7 +91,7 @@ export function AdminDashboard() {
 
       <div className="space-y-6">
         <h2 className="text-2xl font-semibold">Recent Contact Leads</h2>
-        <Card>
+        <Card className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

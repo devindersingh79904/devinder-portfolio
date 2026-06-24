@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Helmet } from 'react-helmet-async'
+import { toast } from 'sonner'
 import { API_ROUTES } from '@/constants'
 
 export function JDMatch() {
@@ -15,9 +16,11 @@ export function JDMatch() {
   const [hrEmail, setHrEmail] = useState('')
   const [company, setCompany] = useState('')
   const [roleTitle, setRoleTitle] = useState('')
-  
+
   const matchMutation = useMutation({
-    mutationFn: (data: any) => apiClient.post(API_ROUTES.JD_MATCH, data)
+    mutationFn: (data: any) => apiClient.post(API_ROUTES.JD_MATCH, data),
+    onSuccess: () => toast.success('Analysis complete!'),
+    onError: (err: any) => toast.error(err?.message || 'Failed to analyze the job description')
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -33,7 +36,7 @@ export function JDMatch() {
   }
 
   return (
-    <div className="container mx-auto p-8 max-w-4xl space-y-8">
+    <div className="container mx-auto p-4 sm:p-8 max-w-4xl space-y-8">
       <Helmet>
         <title>JD Match - Portfolio</title>
       </Helmet>
@@ -157,7 +160,7 @@ export function JDMatch() {
               {matchMutation.data.data.relevantExperience.map((e: any, i: number) => (
                 <div key={i} className="border-l-2 border-primary pl-4 py-1">
                   <div className="font-semibold">{e.role}</div>
-                  <div className="text-sm text-muted-foreground">{e.company}</div>
+                  <div className="text-sm text-muted-foreground">{e.companyName}</div>
                 </div>
               ))}
               {matchMutation.data.data.relevantProjects.map((p: any, i: number) => (

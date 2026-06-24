@@ -7,6 +7,8 @@ import { Link } from 'react-router-dom'
 import { API_ROUTES } from '@/constants/apiRoutes'
 import { ROUTES } from '@/constants/routes'
 import { QUERY_KEYS } from '@/constants'
+import { trackEvent } from '@/services/analytics'
+import { ANALYTICS_EVENTS } from '@/constants/analyticsEvents'
 
 export function Home() {
   const { data: profileResp, isLoading: isProfileLoading } = useQuery({
@@ -25,19 +27,19 @@ export function Home() {
   if (isProfileLoading) return <div className="p-8 text-center">Loading profile...</div>
 
   return (
-    <div className="container mx-auto p-8 space-y-12">
+    <div className="container mx-auto p-4 sm:p-8 space-y-12">
       <Helmet>
-        <title>{profile?.full_name || 'Portfolio'} - Home</title>
+        <title>{profile?.fullName || 'Portfolio'} - Home</title>
         <meta name="description" content={profile?.summary || 'Personal portfolio website'} />
       </Helmet>
 
       {/* Hero Section */}
-      <section className="text-center space-y-4 py-20 bg-muted/30 rounded-xl">
-        <h1 className="text-5xl font-extrabold tracking-tight">{profile?.full_name || 'Your Name'}</h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">{profile?.headline || 'Your Title'}</p>
-        <p className="max-w-3xl mx-auto text-lg">{profile?.summary}</p>
-        <div className="pt-4 flex justify-center gap-4">
-          {profile?.resume_url && (
+      <section className="text-center space-y-4 py-12 sm:py-20 bg-muted/30 rounded-xl px-4">
+        <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">{profile?.fullName || 'Your Name'}</h1>
+        <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">{profile?.headline || 'Your Title'}</p>
+        <p className="max-w-3xl mx-auto text-base sm:text-lg">{profile?.summary}</p>
+        <div className="pt-4 flex flex-col sm:flex-row justify-center gap-4">
+          {profile?.resumeUrl && (
             <Button asChild size="lg">
               <a href={getResumeDownloadUrl()} target="_blank" rel="noreferrer">
                 Download Resume
@@ -45,7 +47,7 @@ export function Home() {
             </Button>
           )}
           <Button variant="outline" size="lg" asChild>
-            <a href="/contact">Contact Me</a>
+            <Link to={ROUTES.CONTACT}>Contact Me</Link>
           </Button>
         </div>
       </section>
@@ -70,7 +72,12 @@ export function Home() {
                 )}
                 <div className="flex gap-2">
                   <Button variant="default" className="p-0 px-4" asChild>
-                    <Link to={ROUTES.PROJECT_DETAIL_BUILD(p.id)}>View Details</Link>
+                    <Link
+                      to={ROUTES.PROJECT_DETAIL_BUILD(p.id)}
+                      onClick={() => trackEvent(ANALYTICS_EVENTS.PROJECT_CLICKED, undefined, { projectId: p.id, title: p.title })}
+                    >
+                      View Details
+                    </Link>
                   </Button>
                   {p.liveUrl && (
                     <Button variant="link" className="p-0" asChild>

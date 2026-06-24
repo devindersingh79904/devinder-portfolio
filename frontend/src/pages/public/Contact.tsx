@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Helmet } from 'react-helmet-async'
+import { toast } from 'sonner'
 import { API_ROUTES } from '@/constants'
 
 export function Contact() {
@@ -21,7 +22,11 @@ export function Contact() {
 
   const contactMutation = useMutation({
     mutationFn: (data: typeof formData) => apiClient.post(API_ROUTES.CONTACT, data),
-    onSuccess: () => setSuccess(true)
+    onSuccess: () => {
+      setSuccess(true)
+      toast.success('Message sent successfully!')
+    },
+    onError: (err: any) => toast.error(err?.message || 'Failed to send message. Please try again.')
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -35,7 +40,7 @@ export function Contact() {
   }
 
   return (
-    <div className="container mx-auto p-8 max-w-2xl space-y-8">
+    <div className="container mx-auto p-4 sm:p-8 max-w-2xl space-y-8">
       <Helmet>
         <title>Contact - Portfolio</title>
       </Helmet>
@@ -81,10 +86,6 @@ export function Contact() {
                 <Label htmlFor="message">Message *</Label>
                 <Textarea id="message" rows={5} value={formData.message} onChange={handleChange} required />
               </div>
-              
-              {contactMutation.isError && (
-                <div className="text-sm text-red-600">{contactMutation.error.message}</div>
-              )}
               
               <Button type="submit" className="w-full" disabled={contactMutation.isPending}>
                 {contactMutation.isPending ? 'Sending...' : 'Send Message'}

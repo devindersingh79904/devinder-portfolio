@@ -34,7 +34,9 @@ from app.core.constants import (
     ADMIN_SKILLS_PATH,
     CSV_CONTACT_LEADS_FILENAME,
     CSV_JD_QUERIES_FILENAME,
+    LATEST_RESUME_FILENAME,
 )
+from app.core.config import settings
 from app.core.exceptions import ErrorCodes, PortfolioException
 from app.core.security import create_access_token, verify_password
 from app.db.database import get_db
@@ -106,37 +108,45 @@ def update_admin_profile(profile_update: ProfileUpdate, db: Session = Depends(ge
     updated_profile = profile_repo.update(db, db_obj=profiles[0], obj_in=profile_update)
     return success_response(data=updated_profile)
 
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "uploads", "resume")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# Backend root (…/backend) — used to resolve the configured (possibly relative) upload dir.
+BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+UPLOAD_DIR_ABS = os.path.join(BACKEND_ROOT, settings.UPLOAD_DIR)
+os.makedirs(UPLOAD_DIR_ABS, exist_ok=True)
 
 @router.post(ADMIN_PROFILE_RESUME_PATH, response_model=APIResponse)
 def upload_resume(
-    file: UploadFile = File(...), 
-    db: Session = Depends(get_db), 
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
     current_admin: AdminUser = Depends(get_current_admin)
 ):
     if not file.filename.lower().endswith('.pdf'):
         raise PortfolioException("Only PDF files are allowed", ErrorCodes.VALIDATION_ERROR, 400)
-    
+
     file.file.seek(0, 2)
     file_size = file.file.tell()
     file.file.seek(0)
-    
-    if file_size > 10 * 1024 * 1024:
-        raise PortfolioException("File size must be under 10MB", ErrorCodes.VALIDATION_ERROR, 400)
-        
-    file_path = os.path.join(UPLOAD_DIR, "latest-resume.pdf")
-    
-    with open(file_path, "wb") as buffer:
+
+    if file_size > settings.MAX_RESUME_SIZE_MB * 1024 * 1024:
+        raise PortfolioException(
+            f"File size must be under {settings.MAX_RESUME_SIZE_MB}MB",
+            ErrorCodes.VALIDATION_ERROR,
+            400,
+        )
+
+    file_path_abs = os.path.join(UPLOAD_DIR_ABS, LATEST_RESUME_FILENAME)
+
+    with open(file_path_abs, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-        
+
+    # Store a stable relative key (resolved against BACKEND_ROOT at download time).
+    relative_path = os.path.join(settings.UPLOAD_DIR, LATEST_RESUME_FILENAME)
     profiles = profile_repo.get_multi(db, limit=1)
     if profiles:
-        profiles[0].resume_url = file_path
+        profiles[0].resume_url = relative_path
         profiles[0].resume_file_name = file.filename
         profiles[0].resume_updated_at = datetime.now(timezone.utc)
         db.commit()
-        
+
     return success_response(message="Resume uploaded successfully")
 
 # Generic CRUD generator

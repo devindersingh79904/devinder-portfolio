@@ -4,6 +4,8 @@ export const ROUTES = {
   PROJECT_DETAIL: '/projects/:projectId',
   PROJECT_DETAIL_BUILD: (id: string) => `/projects/${id}`,
   EXPERIENCE: '/experience',
+  EDUCATION: '/education',
+  SKILLS: '/skills',
   CERTIFICATIONS: '/certifications',
   JD_MATCH: '/jd-match',
   CONTACT: '/contact',

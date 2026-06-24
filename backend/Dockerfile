@@ -17,8 +17,11 @@ COPY . .
 # Ensure uploads directory exists
 RUN mkdir -p uploads/resume
 
+# Make entrypoint executable
+RUN chmod +x entrypoint.sh
+
 # Expose port
 EXPOSE 8000
 
-# Start Uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run migrations (and optional seed) before starting Uvicorn
+ENTRYPOINT ["./entrypoint.sh"]

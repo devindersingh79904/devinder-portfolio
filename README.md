@@ -6,11 +6,13 @@ Built with **FastAPI**, **PostgreSQL**, **React**, **Vite**, **Tailwind CSS**, a
 
 ## Features
 
-- **Public Portfolio**: Showcase your projects, experience, skills, and certifications.
+- **Public Portfolio**: Showcase your projects, experience, **education**, **skills**, and certifications — each with its own page and top navigation.
 - **JD Match Engine**: HR professionals can paste a Job Description to get an instant match score, missing skills gap analysis, and automatically highlighted relevant past projects/experience.
-- **Admin Dashboard**: Full CRUD management of portfolio content, JD query analytics, contact leads, and resume uploads.
+- **Admin Dashboard**: Full CRUD management of portfolio content, JD query analytics, contact leads, and resume uploads, including **CSV export** of JD queries and contact leads.
+- **Analytics**: Page views, project clicks, resume downloads, contact, and JD-match submissions are tracked (frontend tracking is gated by `VITE_ENABLE_ANALYTICS`).
+- **Certification Status**: Derived automatically from the expiry date (`Active` / `Expired` / `No Expiry`) — no manual upkeep.
 - **Soft Deletes**: Active/inactive toggle for portfolio entities instead of permanent deletion.
-- **Resume Management**: Direct PDF upload endpoint with 10MB size limit validation.
+- **Resume Management**: Direct PDF upload endpoint with a configurable size limit (`MAX_RESUME_SIZE_MB`).
 - **Rate Limiting**: Protection against abuse on public endpoints using `slowapi`.
 
 ## Environment Variables (.env)
@@ -26,7 +28,7 @@ JWT_EXPIRE_MINUTES=1440
 
 ENABLE_DEFAULT_SEED=true
 AUTO_SEED_ON_STARTUP=false
-UPLOAD_DIR=uploads
+UPLOAD_DIR=uploads/resume
 MAX_RESUME_SIZE_MB=10
 ```
 
@@ -80,7 +82,7 @@ VITE_ENABLE_ANALYTICS=true
    ```bash
    python scripts/seed_portfolio.py
    ```
-   *Note: `ENABLE_DEFAULT_SEED=true` allows default portfolio seed. `ENABLE_DEFAULT_SEED=false` makes the seed script exit safely. `AUTO_SEED_ON_STARTUP=false` is recommended to prevent accidental seeding.*
+   *Note: `ENABLE_DEFAULT_SEED=true` allows default portfolio seed; `ENABLE_DEFAULT_SEED=false` makes the seed exit safely. Set `AUTO_SEED_ON_STARTUP=true` to run the (idempotent) seed automatically on application startup — handy for containers — otherwise seed manually with the command above. The seed only populates portfolio content (profile, skills, experience, projects, education, certifications); it never touches analytics, contact leads, or JD queries.*
 
 ### 3. Frontend Setup
 
@@ -113,15 +115,27 @@ VITE_ENABLE_ANALYTICS=true
 
 ### Docker Production Deployment
 
-You can run both the frontend, backend, and postgres services fully containerized:
+You can run the frontend, backend, and postgres services fully containerized:
 
 ```bash
-# From the project root
-docker-compose up -d
+# From the project root — set a real JWT secret first
+export JWT_SECRET_KEY=your_super_secret_key_here
+docker-compose up -d --build
 ```
-Note: Ensure you've mounted the `uploads` directory properly for persistent resume storage if not using cloud storage.
 
-To seed the default portfolio data inside the running backend container, use:
+On startup the backend container automatically:
+1. Waits for Postgres to be healthy (compose `healthcheck` + `depends_on`).
+2. Runs `alembic upgrade head` (via `entrypoint.sh`).
+3. Seeds default portfolio data when `AUTO_SEED_ON_STARTUP=true` (the default in `docker-compose.yml`).
+
+So no manual migration/seed step is required. The `./backend/uploads` directory is mounted for persistent resume storage.
+
+To create the initial admin user inside the running container:
+```bash
+docker compose exec backend python scripts/create_admin.py admin@example.com yourpassword "Admin User"
+```
+
+To (re)seed default portfolio data manually:
 ```bash
 docker compose exec backend python scripts/seed_portfolio.py
 ```
