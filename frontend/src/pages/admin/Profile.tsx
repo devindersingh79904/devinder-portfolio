@@ -48,9 +48,9 @@ export function AdminProfile() {
   })
 
   const uploadMutation = useMutation({
-    mutationFn: (formData: FormData) => apiClient.post(API_ROUTES.ADMIN_PROFILE_RESUME, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    }),
+    // Do NOT set Content-Type manually: the browser/axios must set
+    // multipart/form-data WITH the boundary token, or the backend can't parse the file.
+    mutationFn: (formData: FormData) => apiClient.post(API_ROUTES.ADMIN_PROFILE_RESUME, formData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN_PROFILE })
       toast.success('Resume uploaded successfully!')

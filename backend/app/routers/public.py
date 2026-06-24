@@ -18,6 +18,8 @@ from app.core.constants import (
     PROFILE_PATH,
     PROJECT_DETAIL_PATH,
     PROJECTS_PATH,
+    RATE_LIMIT_CONTACT,
+    RATE_LIMIT_JD_MATCH,
     RESUME_DOWNLOAD_PATH,
     SKILLS_PATH,
 )
@@ -121,7 +123,7 @@ def get_skills(db: Session = Depends(get_db)):
     return success_response(data=skills)
 
 @router.post(CONTACT_PATH, response_model=APIResponse)
-@limiter.limit("5/hour")
+@limiter.limit(RATE_LIMIT_CONTACT)
 def submit_contact(request: Request, contact: ContactLeadCreate, db: Session = Depends(get_db)):
     data = contact.model_dump()
     data["ip_address"] = request.client.host if request.client else None
@@ -138,7 +140,7 @@ def submit_contact(request: Request, contact: ContactLeadCreate, db: Session = D
     return success_response(message="Contact lead submitted successfully")
 
 @router.post(JD_MATCH_PATH, response_model=APIResponse)
-@limiter.limit("5/hour")
+@limiter.limit(RATE_LIMIT_JD_MATCH)
 def submit_jd_match(request: Request, query: JDQueryCreate, db: Session = Depends(get_db)):
     client_ip = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")

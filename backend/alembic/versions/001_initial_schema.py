@@ -24,7 +24,7 @@ def upgrade():
         sa.Column('email', sa.String(), nullable=False),
         sa.Column('password_hash', sa.String(), nullable=False),
         sa.Column('name', sa.String(), nullable=False),
-        sa.Column('is_active', sa.Boolean(), default=True),
+        sa.Column('is_active', sa.Boolean(), server_default=sa.true(), nullable=False),
         sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_admin_users_email'), 'admin_users', ['email'], unique=True)
@@ -66,9 +66,9 @@ def upgrade():
         sa.Column('live_url', sa.String(), nullable=True),
         sa.Column('demo_url', sa.String(), nullable=True),
         sa.Column('architecture_url', sa.String(), nullable=True),
-        sa.Column('display_order', sa.Integer(), nullable=True),
-        sa.Column('is_featured', sa.Boolean(), nullable=True),
-        sa.Column('is_active', sa.Boolean(), nullable=True),
+        sa.Column('display_order', sa.Integer(), server_default='0', nullable=False),
+        sa.Column('is_featured', sa.Boolean(), server_default=sa.false(), nullable=False),
+        sa.Column('is_active', sa.Boolean(), server_default=sa.true(), nullable=False),
         sa.Column('updated_by', sa.String(), nullable=True),
         sa.PrimaryKeyConstraint('id')
     )
@@ -84,12 +84,12 @@ def upgrade():
         sa.Column('location', sa.String(), nullable=True),
         sa.Column('start_date', sa.Date(), nullable=False),
         sa.Column('end_date', sa.Date(), nullable=True),
-        sa.Column('is_current', sa.Boolean(), nullable=True),
+        sa.Column('is_current', sa.Boolean(), server_default=sa.false(), nullable=False),
         sa.Column('summary', sa.Text(), nullable=True),
         sa.Column('tech_stack', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column('achievements', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column('display_order', sa.Integer(), nullable=True),
-        sa.Column('is_active', sa.Boolean(), nullable=True),
+        sa.Column('display_order', sa.Integer(), server_default='0', nullable=False),
+        sa.Column('is_active', sa.Boolean(), server_default=sa.true(), nullable=False),
         sa.Column('updated_by', sa.String(), nullable=True),
         sa.PrimaryKeyConstraint('id')
     )
@@ -107,8 +107,8 @@ def upgrade():
         sa.Column('end_year', sa.Integer(), nullable=True),
         sa.Column('grade', sa.String(), nullable=True),
         sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('display_order', sa.Integer(), nullable=True),
-        sa.Column('is_active', sa.Boolean(), nullable=True),
+        sa.Column('display_order', sa.Integer(), server_default='0', nullable=False),
+        sa.Column('is_active', sa.Boolean(), server_default=sa.true(), nullable=False),
         sa.Column('updated_by', sa.String(), nullable=True),
         sa.PrimaryKeyConstraint('id')
     )
@@ -126,8 +126,8 @@ def upgrade():
         sa.Column('credential_id', sa.String(), nullable=True),
         sa.Column('credential_url', sa.String(), nullable=True),
         sa.Column('skills', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column('display_order', sa.Integer(), nullable=True),
-        sa.Column('is_active', sa.Boolean(), nullable=True),
+        sa.Column('display_order', sa.Integer(), server_default='0', nullable=False),
+        sa.Column('is_active', sa.Boolean(), server_default=sa.true(), nullable=False),
         sa.Column('updated_by', sa.String(), nullable=True),
         sa.PrimaryKeyConstraint('id')
     )
@@ -140,10 +140,10 @@ def upgrade():
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
         sa.Column('name', sa.String(), nullable=False),
         sa.Column('category', sa.String(), nullable=False),
-        sa.Column('proficiency', sa.Integer(), nullable=True),
+        sa.Column('proficiency', sa.String(), nullable=True),
         sa.Column('years_of_experience', sa.Integer(), nullable=True),
-        sa.Column('display_order', sa.Integer(), nullable=True),
-        sa.Column('is_active', sa.Boolean(), nullable=True),
+        sa.Column('display_order', sa.Integer(), server_default='0', nullable=False),
+        sa.Column('is_active', sa.Boolean(), server_default=sa.true(), nullable=False),
         sa.Column('updated_by', sa.String(), nullable=True),
         sa.PrimaryKeyConstraint('id')
     )

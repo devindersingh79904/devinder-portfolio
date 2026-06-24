@@ -20,6 +20,12 @@ RUN mkdir -p uploads/resume
 # Make entrypoint executable
 RUN chmod +x entrypoint.sh
 
+# Create a non-root user and give it ownership of the app (incl. uploads).
+# NOTE: when bind-mounting ./backend/uploads on Linux, ensure the host directory
+# is writable by uid 1000 (e.g. `chmod -R 777 backend/uploads`) or use a named volume.
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
+
 # Expose port
 EXPOSE 8000
 

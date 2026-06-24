@@ -3,6 +3,7 @@ import { apiClient } from '@/services/api'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Helmet } from 'react-helmet-async'
 import { API_ROUTES, QUERY_KEYS } from '@/constants'
+import type { Skill } from '@/types'
 
 export function PublicSkills() {
   const { data: skillsResp, isLoading } = useQuery({
@@ -10,12 +11,20 @@ export function PublicSkills() {
     queryFn: () => apiClient.get(API_ROUTES.SKILLS)
   })
 
-  const skills: any[] = skillsResp?.data || []
+  const skills: Skill[] = (skillsResp as any)?.data || []
+
+  // Map a proficiency label to a bar width. Falls back gracefully for unknown values.
+  const PROFICIENCY_WIDTH: Record<string, number> = {
+    Beginner: 25,
+    Intermediate: 50,
+    Advanced: 75,
+    Expert: 100,
+  }
 
   if (isLoading) return <div className="p-8">Loading skills...</div>
 
   // Group skills by category, preserving display order.
-  const grouped = skills.reduce((acc: Record<string, any[]>, s: any) => {
+  const grouped = skills.reduce((acc: Record<string, Skill[]>, s: Skill) => {
     const cat = s.category || 'Other'
     if (!acc[cat]) acc[cat] = []
     acc[cat].push(s)
@@ -29,25 +38,25 @@ export function PublicSkills() {
       </Helmet>
       <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Technical Skills</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {Object.entries(grouped).map(([category, items]) => (
+        {Object.entries(grouped).map(([category, items]: [string, Skill[]]) => (
           <Card key={category}>
             <CardHeader>
               <CardTitle className="text-xl">{category}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {items.map((s: any) => (
+              {items.map((s: Skill) => (
                 <div key={s.id} className="space-y-1">
                   <div className="flex justify-between text-sm">
                     <span className="font-medium">{s.name}</span>
-                    {typeof s.proficiency === 'number' && (
-                      <span className="text-muted-foreground">{s.proficiency}%</span>
+                    {s.proficiency && (
+                      <span className="text-muted-foreground">{s.proficiency}</span>
                     )}
                   </div>
-                  {typeof s.proficiency === 'number' && (
+                  {s.proficiency && (
                     <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
                       <div
                         className="h-full rounded-full bg-primary transition-all"
-                        style={{ width: `${Math.min(100, Math.max(0, s.proficiency))}%` }}
+                        style={{ width: `${PROFICIENCY_WIDTH[s.proficiency] ?? 50}%` }}
                       />
                     </div>
                   )}

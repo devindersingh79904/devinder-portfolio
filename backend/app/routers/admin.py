@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from io import StringIO
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -35,9 +35,11 @@ from app.core.constants import (
     CSV_CONTACT_LEADS_FILENAME,
     CSV_JD_QUERIES_FILENAME,
     LATEST_RESUME_FILENAME,
+    RATE_LIMIT_ADMIN_LOGIN,
 )
 from app.core.config import settings
 from app.core.exceptions import ErrorCodes, PortfolioException
+from app.core.rate_limit import limiter
 from app.core.security import create_access_token, verify_password
 from app.db.database import get_db
 from app.models.admin import AdminUser
@@ -82,7 +84,8 @@ from app.utils.response import success_response
 router = APIRouter(prefix=f"/api/v1{ADMIN_PREFIX}")
 
 @router.post(ADMIN_LOGIN_PATH, response_model=APIResponse[Token])
-def login(credentials: AdminLogin, db: Session = Depends(get_db)):
+@limiter.limit(RATE_LIMIT_ADMIN_LOGIN)
+def login(request: Request, credentials: AdminLogin, db: Session = Depends(get_db)):
     admin = db.query(AdminUser).filter(AdminUser.email == credentials.email).first()
     if not admin or not verify_password(credentials.password, admin.password_hash):
         raise PortfolioException("Incorrect email or password", ErrorCodes.AUTH_ERROR, 401)
@@ -163,15 +166,15 @@ def register_crud(router: APIRouter, path: str, path_detail: str, repo, out_sche
         item = repo.get(db, item_id)
         if not item or not item.is_active:
             raise PortfolioException("Item not found", ErrorCodes.NOT_FOUND, 404)
-        return success_response(data=item)
-        
+        return success_response(data=out_schema.model_validate(item).model_dump(by_alias=True))
+
     @router.post(path)
     def create_item(item_in: create_schema, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
         data = item_in.model_dump()
         data["updated_by"] = current_admin.email
         item = repo.create(db, obj_in=data)
-        return success_response(data=item)
-        
+        return success_response(data=out_schema.model_validate(item).model_dump(by_alias=True))
+
     @router.put(path_detail)
     def update_item(item_id: str, item_in: update_schema, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
         item = repo.get(db, item_id)
@@ -180,7 +183,7 @@ def register_crud(router: APIRouter, path: str, path_detail: str, repo, out_sche
         data = item_in.model_dump(exclude_unset=True)
         data["updated_by"] = current_admin.email
         item = repo.update(db, db_obj=item, obj_in=data)
-        return success_response(data=item)
+        return success_response(data=out_schema.model_validate(item).model_dump(by_alias=True))
         
     @router.delete(path_detail)
     def delete_item(item_id: str, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):

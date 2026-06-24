@@ -1,5 +1,17 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
 from typing import List
+
+# Placeholder secrets that must never be accepted in any environment.
+WEAK_JWT_SECRETS = {
+    "change-me",
+    "change-me-in-production",
+    "super-secret-key-change-in-production",
+    "secret",
+    "your_super_secret_key_here",
+}
+MIN_JWT_SECRET_LENGTH = 32
+
 
 class Settings(BaseSettings):
     APP_NAME: str = "portfolio-api"
@@ -21,7 +33,22 @@ class Settings(BaseSettings):
     MAX_RESUME_SIZE_MB: int = 10
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
-    
+
+    @field_validator("JWT_SECRET_KEY")
+    @classmethod
+    def validate_jwt_secret(cls, value: str) -> str:
+        if not value or value.strip().lower() in WEAK_JWT_SECRETS:
+            raise ValueError(
+                "JWT_SECRET_KEY is missing or set to an insecure placeholder. "
+                "Set a strong, random secret of at least "
+                f"{MIN_JWT_SECRET_LENGTH} characters."
+            )
+        if len(value) < MIN_JWT_SECRET_LENGTH:
+            raise ValueError(
+                f"JWT_SECRET_KEY must be at least {MIN_JWT_SECRET_LENGTH} characters long."
+            )
+        return value
+
     @property
     def cors_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.CORS_ALLOWED_ORIGINS.split(",")]

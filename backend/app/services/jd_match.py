@@ -9,6 +9,20 @@ from app.repositories.queries import jd_query_repo
 def normalize_text(text: str) -> str:
     return text.lower().strip()
 
+
+# Proficiency labels considered "strong" enough to count as a full match.
+STRONG_PROFICIENCIES = {"advanced", "expert"}
+
+
+def is_strong_proficiency(value) -> bool:
+    """Return True for strong proficiency. Supports both string labels
+    (Beginner/Intermediate/Advanced/Expert) and legacy numeric values."""
+    if value is None:
+        return True  # unknown proficiency: assume competent rather than penalize
+    if isinstance(value, (int, float)):
+        return value >= 60
+    return str(value).strip().lower() in STRONG_PROFICIENCIES
+
 def calculate_jd_match(db: Session, query: JDQueryCreate, ip_address: str = None, user_agent: str = None) -> JDMatchResult:
     # 1. Fetch all skills from DB
     all_skills = skill_repo.get_multi(db, limit=1000, filters={"is_active": True})
@@ -17,26 +31,36 @@ def calculate_jd_match(db: Session, query: JDQueryCreate, ip_address: str = None
     # 2. Extract matched skills by simple text search
     jd_normalized = normalize_text(query.jd_text)
     
-    matched_skills = []
-    missing_skills = [] # We might simulate missing skills or extract them if we have a broader dictionary
-    
-    # A simple keyword match
+    matched_skills = []   # required skills we have at a strong proficiency
+    weak_skills = []      # required skills we have, but only at a lower proficiency
+    found_skills = []     # all of our skills mentioned in the JD (strong + weak)
+
+    # Keyword-match our known skills against the JD, classifying by proficiency.
     for skill_name_norm, skill_obj in known_skills.items():
         if re.search(r'\b' + re.escape(skill_name_norm) + r'\b', jd_normalized):
-            matched_skills.append(skill_obj.name)
-            
-    # For MVP, missing skills can be mocked or inferred if we had a predefined "tech dictionary"
-    # Here, we will just use some generic ones if they are present in JD but not in our profile
+            found_skills.append(skill_obj.name)
+            if is_strong_proficiency(skill_obj.proficiency):
+                matched_skills.append(skill_obj.name)
+            else:
+                weak_skills.append(skill_obj.name)
+
+    # Missing skills: well-known techs referenced in the JD that we don't have at all.
+    found_norm = [normalize_text(s) for s in found_skills]
+    missing_skills = []
     common_tech_dict = ["kubernetes", "graphql", "redis", "docker", "aws", "gcp", "azure", "react", "python", "java", "node.js"]
     for tech in common_tech_dict:
-        if re.search(r'\b' + tech + r'\b', jd_normalized) and tech not in [normalize_text(s) for s in matched_skills]:
-            missing_skills.append(tech.title())
-            
-    # Calculate skill score (70%)
-    skill_score_pct = 70.0
-    if len(matched_skills) + len(missing_skills) > 0:
-        skill_ratio = len(matched_skills) / (len(matched_skills) + len(missing_skills))
-        skill_score_pct = 70.0 * skill_ratio
+        if re.search(r'\b' + tech + r'\b', jd_normalized):
+            already_have = any(tech in fs or fs in tech for fs in found_norm)
+            if not already_have:
+                missing_skills.append(tech.title())
+
+    # Calculate skill score (70%): strong matches full weight, weak matches half.
+    total_skill_signals = len(matched_skills) + len(weak_skills) + len(missing_skills)
+    if total_skill_signals > 0:
+        weighted = len(matched_skills) + 0.5 * len(weak_skills)
+        skill_score_pct = 70.0 * (weighted / total_skill_signals)
+    else:
+        skill_score_pct = 70.0
         
     # Find relevant projects & experience (20%)
     projects = project_repo.get_multi(db, limit=1000, filters={"is_active": True})
@@ -50,7 +74,7 @@ def calculate_jd_match(db: Session, query: JDQueryCreate, ip_address: str = None
         if p.features:
             project_text += " " + json.dumps(p.features).lower()
             
-        matched_in_project = [s for s in matched_skills if normalize_text(s) in project_text]
+        matched_in_project = [s for s in found_skills if normalize_text(s) in project_text]
         if matched_in_project:
             reason = f"Matches {', '.join(matched_in_project[:3])}"
             relevant_projects.append({"id": str(p.id), "title": p.title, "reason": reason})
@@ -63,7 +87,7 @@ def calculate_jd_match(db: Session, query: JDQueryCreate, ip_address: str = None
         if e.tech_stack:
             exp_text += " " + json.dumps(e.tech_stack).lower()
             
-        matched_in_exp = [s for s in matched_skills if normalize_text(s) in exp_text]
+        matched_in_exp = [s for s in found_skills if normalize_text(s) in exp_text]
         if matched_in_exp:
             reason = f"Relevant {', '.join(matched_in_exp[:3])} experience"
             relevant_experiences.append({"id": str(e.id), "companyName": e.company_name, "role": e.role, "reason": reason})
@@ -82,7 +106,7 @@ def calculate_jd_match(db: Session, query: JDQueryCreate, ip_address: str = None
     match_score = round(total_score, 1)
     matched = matched_skills
     missing = missing_skills
-    weak = []
+    weak = weak_skills
     relevant_projects = relevant_projects[:3]
     relevant_experience = relevant_experiences[:3]
     summary = f"Score is {match_score}/100 based on {len(matched_skills)} matched skills."

@@ -69,7 +69,7 @@ class Skill(BaseModel):
 
     name = Column(String, nullable=False)
     category = Column(String, nullable=False)
-    proficiency = Column(Integer, nullable=True) # e.g. 1-100 or 1-5
+    proficiency = Column(String, nullable=True)  # Beginner | Intermediate | Advanced | Expert
     years_of_experience = Column(Integer, nullable=True)
     display_order = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)

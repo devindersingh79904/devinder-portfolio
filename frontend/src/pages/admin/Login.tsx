@@ -23,6 +23,8 @@ export function AdminLogin() {
       if (response.data?.access_token) {
         localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, response.data.access_token)
         navigate(ROUTES.ADMIN_DASHBOARD)
+      } else {
+        setError('Login failed. Token missing from server response.')
       }
     } catch (err: any) {
       setError(err.message || 'Login failed')

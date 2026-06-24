@@ -25,7 +25,7 @@ class BaseSchema(BaseModel):
 class SkillBase(ORMBase):
     name: str
     category: str
-    proficiency: Optional[int] = None
+    proficiency: Optional[str] = None  # Beginner | Intermediate | Advanced | Expert
     years_of_experience: Optional[int] = None
     display_order: int = 0
     is_active: bool = True

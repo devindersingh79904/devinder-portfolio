@@ -9,6 +9,7 @@ import { ROUTES } from '@/constants/routes'
 import { QUERY_KEYS } from '@/constants'
 import { trackEvent } from '@/services/analytics'
 import { ANALYTICS_EVENTS } from '@/constants/analyticsEvents'
+import type { Project, Profile } from '@/types'
 
 export function Home() {
   const { data: profileResp, isLoading: isProfileLoading } = useQuery({
@@ -21,8 +22,8 @@ export function Home() {
     queryFn: () => apiClient.get(API_ROUTES.PROJECTS)
   })
 
-  const profile = profileResp?.data
-  const projects = projectsResp?.data || []
+  const profile: Profile | undefined = (profileResp as any)?.data
+  const projects: Project[] = (projectsResp as any)?.data || []
 
   if (isProfileLoading) return <div className="p-8 text-center">Loading profile...</div>
 
@@ -56,7 +57,7 @@ export function Home() {
       <section className="space-y-6">
         <h2 className="text-3xl font-bold tracking-tight">Featured Projects</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.filter((p: any) => p.isFeatured).map((p: any) => (
+          {projects.filter((p: Project) => p.isFeatured).map((p: Project) => (
             <Card key={p.id}>
               <CardHeader>
                 <CardTitle>{p.title}</CardTitle>
@@ -93,7 +94,7 @@ export function Home() {
               </CardContent>
             </Card>
           ))}
-          {projects.filter((p: any) => p.isFeatured).length === 0 && (
+          {projects.filter((p: Project) => p.isFeatured).length === 0 && (
             <p className="text-muted-foreground">No featured projects found.</p>
           )}
         </div>

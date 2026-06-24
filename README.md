@@ -17,13 +17,43 @@ Built with **FastAPI**, **PostgreSQL**, **React**, **Vite**, **Tailwind CSS**, a
 
 ## Environment Variables (.env)
 
-> **Note:** `.env` files are explicitly ignored in `.gitignore` to prevent sensitive credentials from leaking into source control.
+> **Note:** `.env` files are explicitly ignored in `.gitignore` to prevent sensitive credentials from leaking into source control. Copy the provided `.env.example` files and fill in **strong** secrets.
 
-You must create a `.env` file in the `backend/` directory:
+> **Security:** `JWT_SECRET_KEY` is validated at startup. It must be at least 32 characters and must not be a known placeholder (e.g. `change-me-in-production`); otherwise the backend refuses to start.
+
+### Docker (project root)
+
+For containerized runs, copy the root example and set strong secrets:
+
+```bash
+cp .env.example .env
+# then edit .env and set, at minimum:
+#   POSTGRES_PASSWORD   (strong password)
+#   JWT_SECRET_KEY      (>= 32 chars, e.g. `openssl rand -hex 32`)
+```
 
 ```env
-DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/portfolio_db
-JWT_SECRET_KEY=your_super_secret_key_here
+POSTGRES_DB=portfolio_db
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=replace-with-strong-password
+
+JWT_SECRET_KEY=replace-with-at-least-32-character-secret
+CORS_ALLOWED_ORIGINS=http://localhost:5173
+ENABLE_DEFAULT_SEED=true
+AUTO_SEED_ON_STARTUP=false
+
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+```
+
+### Local backend (non-Docker)
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+```env
+DATABASE_URL=postgresql+psycopg://postgres:password@localhost:5432/portfolio_db
+JWT_SECRET_KEY=replace-with-at-least-32-character-secret
 JWT_EXPIRE_MINUTES=1440
 
 ENABLE_DEFAULT_SEED=true
@@ -32,7 +62,11 @@ UPLOAD_DIR=uploads/resume
 MAX_RESUME_SIZE_MB=10
 ```
 
-You must also create a `.env` file in the `frontend/` directory (or use `.env.example`):
+### Local frontend (non-Docker)
+
+```bash
+cp frontend/.env.example frontend/.env
+```
 
 ```env
 VITE_API_BASE_URL=http://localhost:8000/api/v1
@@ -51,7 +85,7 @@ VITE_ENABLE_ANALYTICS=true
 
 1. Start the PostgreSQL database using Docker Compose:
    ```bash
-   docker-compose up -d postgres
+   docker compose up -d postgres
    ```
 2. Navigate to the backend directory and set up a virtual environment:
    ```bash
@@ -118,10 +152,12 @@ VITE_ENABLE_ANALYTICS=true
 You can run the frontend, backend, and postgres services fully containerized:
 
 ```bash
-# From the project root — set a real JWT secret first
-export JWT_SECRET_KEY=your_super_secret_key_here
-docker-compose up -d --build
+# From the project root — create and fill in .env first (strong POSTGRES_PASSWORD + JWT_SECRET_KEY)
+cp .env.example .env
+docker compose up -d --build
 ```
+
+> The backend refuses to start if `JWT_SECRET_KEY` is missing/weak, and compose requires `POSTGRES_PASSWORD` — both must be set in `.env`.
 
 On startup the backend container automatically:
 1. Waits for Postgres to be healthy (compose `healthcheck` + `depends_on`).

@@ -24,6 +24,7 @@ export function Contact() {
     mutationFn: (data: typeof formData) => apiClient.post(API_ROUTES.CONTACT, data),
     onSuccess: () => {
       setSuccess(true)
+      setFormData({ name: '', email: '', company: '', subject: '', message: '' })
       toast.success('Message sent successfully!')
     },
     onError: (err: any) => toast.error(err?.message || 'Failed to send message. Please try again.')

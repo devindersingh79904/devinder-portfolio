@@ -1,28 +1,35 @@
+import { lazy, Suspense } from "react"
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { ROUTES, API_ROUTES, QUERY_KEYS } from "@/constants"
 import { PublicLayout } from "@/components/layout/PublicLayout"
 import { AdminLayout } from "@/components/layout/AdminLayout"
 import { Toaster } from "sonner"
-
-import { Home } from "@/pages/public/Home"
-import { JDMatch } from "@/pages/public/JDMatch"
-import { Contact } from "@/pages/public/Contact"
-import { PublicProjects } from "@/pages/public/Projects"
-import { ProjectDetail } from "@/pages/public/ProjectDetail"
-import { PublicExperience } from "@/pages/public/Experience"
-import { PublicEducation } from "@/pages/public/Education"
-import { PublicSkills } from "@/pages/public/Skills"
-import { PublicCertifications } from "@/pages/public/Certifications"
-import { NotFound } from "@/pages/NotFound"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 
-import { AdminLogin } from "@/pages/admin/Login"
-import { AdminDashboard } from "@/pages/admin/Dashboard"
-import { AdminProfile } from "@/pages/admin/Profile"
-import { GenericCrud } from "@/pages/admin/GenericCrud"
+// Route components are code-split so each page loads as its own chunk.
+const Home = lazy(() => import("@/pages/public/Home").then(m => ({ default: m.Home })))
+const JDMatch = lazy(() => import("@/pages/public/JDMatch").then(m => ({ default: m.JDMatch })))
+const Contact = lazy(() => import("@/pages/public/Contact").then(m => ({ default: m.Contact })))
+const PublicProjects = lazy(() => import("@/pages/public/Projects").then(m => ({ default: m.PublicProjects })))
+const ProjectDetail = lazy(() => import("@/pages/public/ProjectDetail").then(m => ({ default: m.ProjectDetail })))
+const PublicExperience = lazy(() => import("@/pages/public/Experience").then(m => ({ default: m.PublicExperience })))
+const PublicEducation = lazy(() => import("@/pages/public/Education").then(m => ({ default: m.PublicEducation })))
+const PublicSkills = lazy(() => import("@/pages/public/Skills").then(m => ({ default: m.PublicSkills })))
+const PublicCertifications = lazy(() => import("@/pages/public/Certifications").then(m => ({ default: m.PublicCertifications })))
+const NotFound = lazy(() => import("@/pages/NotFound").then(m => ({ default: m.NotFound })))
+
+const AdminLogin = lazy(() => import("@/pages/admin/Login").then(m => ({ default: m.AdminLogin })))
+const AdminDashboard = lazy(() => import("@/pages/admin/Dashboard").then(m => ({ default: m.AdminDashboard })))
+const AdminProfile = lazy(() => import("@/pages/admin/Profile").then(m => ({ default: m.AdminProfile })))
+const GenericCrud = lazy(() => import("@/pages/admin/GenericCrud").then(m => ({ default: m.GenericCrud })))
+
 import { useQuery } from "@tanstack/react-query"
 import { apiClient } from "@/services/api"
-import { SKILL_CATEGORIES } from "@/constants/enums"
+import { SKILL_CATEGORIES, SKILL_PROFICIENCIES } from "@/constants/enums"
+
+function PageLoader() {
+  return <div className="p-8 text-muted-foreground">Loading…</div>
+}
 
 
 
@@ -35,11 +42,13 @@ function App() {
 
   const enumsData = enumsResp?.data || {}
   const skillCategories = enumsData.skillCategories || SKILL_CATEGORIES
+  const skillProficiencies = enumsData.skillProficiencies || SKILL_PROFICIENCIES
 
   return (
     <ErrorBoundary>
       <Toaster position="top-right" />
       <BrowserRouter>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
         {/* Public Routes */}
         <Route element={<PublicLayout />}>
@@ -139,7 +148,7 @@ function App() {
             fields={[
               {key: 'name', label: 'Name', type: 'text', required: true},
               {key: 'category', label: 'Category', type: 'select', options: skillCategories as string[], required: true},
-              {key: 'proficiency', label: 'Proficiency (0-100)', type: 'number', required: true},
+              {key: 'proficiency', label: 'Proficiency', type: 'select', options: skillProficiencies as string[], required: true},
               {key: 'yearsOfExperience', label: 'Years of Experience', type: 'number'},
               {key: 'displayOrder', label: 'Display Order', type: 'number'},
               {key: 'isActive', label: 'Is Active', type: 'boolean'}
@@ -149,6 +158,7 @@ function App() {
           <Route path={ROUTES.ADMIN_CONTACT_LEADS} element={<GenericCrud entityName="Contact Leads" endpoint={API_ROUTES.ADMIN_CONTACT_LEADS} columns={[{key: 'name', label: 'Name'}, {key: 'email', label: 'Email'}, {key: 'subject', label: 'Subject'}]} readOnly={true} exportEndpoint={API_ROUTES.ADMIN_CONTACT_LEADS_EXPORT} />} />
         </Route>
       </Routes>
+        </Suspense>
     </BrowserRouter>
     </ErrorBoundary>
   )

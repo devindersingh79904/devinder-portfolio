@@ -140,6 +140,15 @@ export function JDMatch() {
                   </div>
                 </div>
                 <div>
+                  <h4 className="font-semibold text-amber-600 mb-1">Developing Skills</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {(matchMutation.data.data.weakSkills ?? []).map((s: string) => (
+                      <span key={s} className="px-2 py-1 bg-amber-100 text-amber-800 rounded text-sm">{s}</span>
+                    ))}
+                    {(matchMutation.data.data.weakSkills ?? []).length === 0 && <span className="text-muted-foreground text-sm">None detected</span>}
+                  </div>
+                </div>
+                <div>
                   <h4 className="font-semibold text-red-600 mb-1">Missing Skills</h4>
                   <div className="flex flex-wrap gap-2">
                     {matchMutation.data.data.missingSkills.map((s: string) => (
