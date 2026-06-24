@@ -74,10 +74,14 @@ app = FastAPI(
 # Middleware
 app.add_middleware(CorrelationIdMiddleware)
 
+cors_origins = settings.cors_origins_list
+allow_all_origins = "*" in cors_origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    # A wildcard origin ("*") cannot be combined with credentials per the CORS spec.
+    # The app authenticates via Bearer tokens (not cookies), so this is safe.
+    allow_credentials=not allow_all_origins,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=[HEADER_CORRELATION_ID]
