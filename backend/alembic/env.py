@@ -25,7 +25,9 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 target_metadata = Base.metadata
 
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Escape % as %% so ConfigParser interpolation doesn't choke on URL-encoded
+# passwords (e.g. %40 for '@'). ConfigParser restores it to a single % on read.
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("%", "%%"))
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
