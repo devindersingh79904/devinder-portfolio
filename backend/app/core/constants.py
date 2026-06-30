@@ -29,6 +29,9 @@ ENUMS_PATH = "/enums"
 ADMIN_PREFIX = "/admin"
 ADMIN_LOGIN_PATH = "/login"
 AUTH_LOGIN_PATH = ADMIN_LOGIN_PATH
+ADMIN_REFRESH_PATH = "/refresh"
+ADMIN_LOGOUT_PATH = "/logout"
+ADMIN_CHANGE_PASSWORD_PATH = "/change-password"
 ADMIN_DASHBOARD_STATS_PATH = "/dashboard/stats"
 
 ADMIN_PROFILE_PATH = "/profile"

@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiClient } from '@/services/api'
-import { ROUTES, STORAGE_KEYS, API_ROUTES } from '@/constants'
+import { setAccessToken } from '@/services/auth'
+import { ROUTES, API_ROUTES } from '@/constants'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,7 +22,7 @@ export function AdminLogin() {
     try {
       const response: any = await apiClient.post(API_ROUTES.ADMIN_LOGIN, { email, password })
       if (response.data?.access_token) {
-        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, response.data.access_token)
+        setAccessToken(response.data.access_token)
         navigate(ROUTES.ADMIN_DASHBOARD)
       } else {
         setError('Login failed. Token missing from server response.')

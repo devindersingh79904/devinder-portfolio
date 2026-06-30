@@ -1,10 +1,14 @@
 import json
+import logging
 import re
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from app.schemas.portfolio import JDQueryCreate, JDMatchResult
 from app.repositories.portfolio import skill_repo, project_repo, experience_repo, certification_repo
 from app.repositories.queries import jd_query_repo
+from app.repositories.settings import resolve_jd_config
+
+logger = logging.getLogger(__name__)
 
 def normalize_text(text: str) -> str:
     return text.lower().strip()
@@ -23,7 +27,7 @@ def is_strong_proficiency(value) -> bool:
         return value >= 60
     return str(value).strip().lower() in STRONG_PROFICIENCIES
 
-def calculate_jd_match(db: Session, query: JDQueryCreate, ip_address: str = None, user_agent: str = None) -> JDMatchResult:
+def _match_via_heuristic(db: Session, query: JDQueryCreate) -> JDMatchResult:
     # 1. Fetch all skills from DB
     all_skills = skill_repo.get_multi(db, limit=1000, filters={"is_active": True})
     known_skills = {normalize_text(s.name): s for s in all_skills}
@@ -111,7 +115,7 @@ def calculate_jd_match(db: Session, query: JDQueryCreate, ip_address: str = None
     relevant_experience = relevant_experiences[:3]
     summary = f"Score is {match_score}/100 based on {len(matched_skills)} matched skills."
     
-    result = JDMatchResult(
+    return JDMatchResult(
         matchScore=match_score,
         matchedSkills=matched,
         missingSkills=missing,
@@ -120,24 +124,42 @@ def calculate_jd_match(db: Session, query: JDQueryCreate, ip_address: str = None
         relevantExperience=relevant_experience,
         summary=summary
     )
-    
-    # 4. Save Query and Result to DB
+
+
+def calculate_jd_match(db: Session, query: JDQueryCreate, ip_address: str = None, user_agent: str = None) -> JDMatchResult:
+    """Orchestrator: use the Claude LLM when configured (env OR admin Settings),
+    otherwise fall back to the offline keyword heuristic. Persists the query once."""
+    llm_enabled, model, api_key = resolve_jd_config(db)
+
+    result = None
+    if llm_enabled and api_key:
+        try:
+            from app.services.llm_jd_match import calculate_jd_match_llm
+            result = calculate_jd_match_llm(db, query, model=model, api_key=api_key)
+        except Exception as e:
+            # Expected when the key/model is misconfigured — fall back, don't error out.
+            logger.warning("LLM JD match failed (%s); falling back to heuristic", type(e).__name__)
+
+    if result is None:
+        result = _match_via_heuristic(db, query)
+
+    # Persist the query + result once, regardless of which strategy produced it.
     jd_query_repo.create(db, obj_in={
         "hr_name": query.hr_name,
         "hr_email": query.hr_email,
         "company_name": query.company_name,
         "role_title": query.role_title,
         "jd_text": query.jd_text,
-        "match_score": match_score,
-        "matched_skills": matched,
-        "missing_skills": missing,
-        "weak_skills": weak,
-        "relevant_projects": relevant_projects,
-        "relevant_experience": relevant_experience,
-        "summary": summary,
+        "match_score": result.matchScore,
+        "matched_skills": result.matchedSkills,
+        "missing_skills": result.missingSkills,
+        "weak_skills": result.weakSkills,
+        "relevant_projects": result.relevantProjects,
+        "relevant_experience": result.relevantExperience,
+        "summary": result.summary,
         "result_json": result.model_dump(),
         "ip_address": ip_address,
         "user_agent": user_agent
     })
-    
+
     return result

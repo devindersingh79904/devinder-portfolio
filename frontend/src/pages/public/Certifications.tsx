@@ -3,11 +3,12 @@ import { apiClient } from '@/services/api'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Helmet } from 'react-helmet-async'
+import { LoadError } from '@/components/LoadError'
 import { API_ROUTES } from '@/constants'
 import { QUERY_KEYS } from '@/constants'
 
 export function PublicCertifications() {
-  const { data: certsResp, isLoading } = useQuery({
+  const { data: certsResp, isLoading, isError, refetch } = useQuery({
     queryKey: QUERY_KEYS.PUBLIC_CERTS,
     queryFn: () => apiClient.get(API_ROUTES.CERTIFICATIONS)
   })
@@ -15,6 +16,7 @@ export function PublicCertifications() {
   const certs = certsResp?.data || []
 
   if (isLoading) return <div className="p-8">Loading certifications...</div>
+  if (isError) return <LoadError message="Couldn't load certifications." onRetry={() => refetch()} />
 
   return (
     <div className="container mx-auto p-4 sm:p-8 space-y-8 max-w-4xl">

@@ -185,9 +185,49 @@ class ProfileOut(ProfileBase):
 # -----------------
 class SiteSettingsOut(ORMBase):
     jd_match_enabled: bool = True
+    # Section visibility
+    projects_enabled: bool = True
+    skills_enabled: bool = True
+    experience_enabled: bool = True
+    education_enabled: bool = True
+    certifications_enabled: bool = True
+    contact_enabled: bool = True
+    resume_enabled: bool = True
+    analytics_enabled: bool = True
+    # Dynamic AI / JD config (non-secret parts only)
+    jd_match_llm_enabled: bool = True
+    jd_match_model: Optional[str] = None
+    # The raw API key is NEVER returned. These are computed in the router.
+    anthropic_api_key_configured: bool = False
+    anthropic_api_key_source: Optional[str] = None  # "custom" | "env" | None
+
+class PublicSettingsOut(ORMBase):
+    """Visibility flags exposed publicly so the frontend can hide nav/routes.
+    Intentionally omits AI model/key config."""
+    jd_match_enabled: bool = True
+    projects_enabled: bool = True
+    skills_enabled: bool = True
+    experience_enabled: bool = True
+    education_enabled: bool = True
+    certifications_enabled: bool = True
+    contact_enabled: bool = True
+    resume_enabled: bool = True
+    analytics_enabled: bool = True
 
 class SiteSettingsUpdate(BaseSchema):
     jd_match_enabled: Optional[bool] = None
+    projects_enabled: Optional[bool] = None
+    skills_enabled: Optional[bool] = None
+    experience_enabled: Optional[bool] = None
+    education_enabled: Optional[bool] = None
+    certifications_enabled: Optional[bool] = None
+    contact_enabled: Optional[bool] = None
+    resume_enabled: Optional[bool] = None
+    analytics_enabled: Optional[bool] = None
+    jd_match_llm_enabled: Optional[bool] = None
+    jd_match_model: Optional[str] = None
+    # Write-only secret: send a new key to set it, "" to clear (revert to env). Never echoed back.
+    anthropic_api_key: Optional[str] = None
 
 # -----------------
 # CONTACT LEADS

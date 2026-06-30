@@ -16,6 +16,9 @@ export const API_ROUTES = {
   ANALYTICS_EVENTS: "/analytics/events",
 
   ADMIN_LOGIN: "/admin/login",
+  ADMIN_REFRESH: "/admin/refresh",
+  ADMIN_LOGOUT: "/admin/logout",
+  ADMIN_CHANGE_PASSWORD: "/admin/change-password",
   ADMIN_DASHBOARD_STATS: "/admin/dashboard/stats",
 
   ADMIN_PROFILE: "/admin/profile",

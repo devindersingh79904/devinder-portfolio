@@ -50,7 +50,8 @@ function App() {
     queryFn: () => apiClient.get(API_ROUTES.SETTINGS),
   })
   // Default to enabled while loading so behavior is unchanged on the happy path.
-  const jdMatchEnabled: boolean = settingsResp?.data?.jdMatchEnabled ?? true
+  const flags = settingsResp?.data || {}
+  const on = (flag: string) => flags[flag] ?? true
 
   return (
     <ErrorBoundary>
@@ -61,14 +62,14 @@ function App() {
         {/* Public Routes */}
         <Route element={<PublicLayout />}>
           <Route path={ROUTES.HOME} element={<Home />} />
-          <Route path={ROUTES.PROJECTS} element={<PublicProjects />} />
-          <Route path={ROUTES.PROJECT_DETAIL} element={<ProjectDetail />} />
-          <Route path={ROUTES.EXPERIENCE} element={<PublicExperience />} />
-          <Route path={ROUTES.EDUCATION} element={<PublicEducation />} />
-          <Route path={ROUTES.SKILLS} element={<PublicSkills />} />
-          <Route path={ROUTES.CERTIFICATIONS} element={<PublicCertifications />} />
-          <Route path={ROUTES.JD_MATCH} element={jdMatchEnabled ? <JDMatch /> : <NotFound />} />
-          <Route path={ROUTES.CONTACT} element={<Contact />} />
+          <Route path={ROUTES.PROJECTS} element={on('projectsEnabled') ? <PublicProjects /> : <NotFound />} />
+          <Route path={ROUTES.PROJECT_DETAIL} element={on('projectsEnabled') ? <ProjectDetail /> : <NotFound />} />
+          <Route path={ROUTES.EXPERIENCE} element={on('experienceEnabled') ? <PublicExperience /> : <NotFound />} />
+          <Route path={ROUTES.EDUCATION} element={on('educationEnabled') ? <PublicEducation /> : <NotFound />} />
+          <Route path={ROUTES.SKILLS} element={on('skillsEnabled') ? <PublicSkills /> : <NotFound />} />
+          <Route path={ROUTES.CERTIFICATIONS} element={on('certificationsEnabled') ? <PublicCertifications /> : <NotFound />} />
+          <Route path={ROUTES.JD_MATCH} element={on('jdMatchEnabled') ? <JDMatch /> : <NotFound />} />
+          <Route path={ROUTES.CONTACT} element={on('contactEnabled') ? <Contact /> : <NotFound />} />
           <Route path="*" element={<NotFound />} />
         </Route>
 

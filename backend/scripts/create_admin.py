@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.db.database import SessionLocal
 from app.models.admin import AdminUser
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, validate_password_warnings
 from app.core.config import settings
 
 
@@ -17,6 +17,10 @@ def create_admin(email: str, password: str, name: str):
         if existing:
             print(f"Admin user '{email}' already exists.")
             return
+
+        # Warn-only password policy (does not block weak passwords).
+        for warning in validate_password_warnings(password):
+            print(f"Warning: admin password is {warning}.")
 
         hashed_pw = get_password_hash(password)
         admin = AdminUser(email=email, password_hash=hashed_pw, name=name)

@@ -13,6 +13,28 @@ import { API_ROUTES, QUERY_KEYS } from '@/constants'
 export function AdminProfile() {
   const queryClient = useQueryClient()
   const [file, setFile] = useState<File | null>(null)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+
+  const changePasswordMutation = useMutation({
+    mutationFn: (data: { currentPassword: string; newPassword: string }) =>
+      apiClient.post(API_ROUTES.ADMIN_CHANGE_PASSWORD, {
+        current_password: data.currentPassword,
+        new_password: data.newPassword,
+      }),
+    onSuccess: () => {
+      toast.success('Password changed successfully!')
+      setCurrentPassword('')
+      setNewPassword('')
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to change password'),
+  })
+
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!currentPassword || !newPassword) return
+    changePasswordMutation.mutate({ currentPassword, newPassword })
+  }
 
   const { register, handleSubmit, reset } = useForm()
 
@@ -177,6 +199,27 @@ export function AdminProfile() {
                 {uploadMutation.isPending ? 'Uploading...' : 'Upload & Replace'}
               </Button>
             </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Change Password</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Current Password</Label>
+              <Input id="currentPassword" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input id="newPassword" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
+            </div>
+            <Button type="submit" disabled={changePasswordMutation.isPending}>
+              {changePasswordMutation.isPending ? 'Updating...' : 'Update Password'}
+            </Button>
           </form>
         </CardContent>
       </Card>

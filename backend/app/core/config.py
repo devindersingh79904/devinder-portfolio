@@ -22,7 +22,19 @@ class Settings(BaseSettings):
     
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRE_MINUTES: int = 1440
+    JWT_EXPIRE_MINUTES: int = 1440  # legacy; superseded by JWT_ACCESS_EXPIRE_MINUTES
+    # Short-lived access token + long-lived refresh token (httpOnly cookie).
+    JWT_ACCESS_EXPIRE_MINUTES: int = 60
+    JWT_REFRESH_EXPIRE_DAYS: int = 7
+    REFRESH_COOKIE_NAME: str = "portfolio_refresh"
+    REFRESH_COOKIE_SECURE: bool = True  # set False for http://localhost dev
+
+    # Admin password policy (warn-only: weak passwords are allowed but logged).
+    MIN_ADMIN_PASSWORD_LENGTH: int = 8
+
+    # JD Match LLM defaults (overridable per-deployment via env, or dynamically in admin Settings).
+    ANTHROPIC_API_KEY: Optional[str] = None
+    JD_MATCH_MODEL: str = "claude-haiku-4-5"
     
     CORS_ALLOWED_ORIGINS: str = "http://localhost:5173"
     

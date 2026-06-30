@@ -2,11 +2,12 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/services/api'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Helmet } from 'react-helmet-async'
+import { LoadError } from '@/components/LoadError'
 import { API_ROUTES, QUERY_KEYS } from '@/constants'
 import type { Skill } from '@/types'
 
 export function PublicSkills() {
-  const { data: skillsResp, isLoading } = useQuery({
+  const { data: skillsResp, isLoading, isError, refetch } = useQuery({
     queryKey: QUERY_KEYS.PUBLIC_SKILLS,
     queryFn: () => apiClient.get(API_ROUTES.SKILLS)
   })
@@ -22,6 +23,7 @@ export function PublicSkills() {
   }
 
   if (isLoading) return <div className="p-8">Loading skills...</div>
+  if (isError) return <LoadError message="Couldn't load skills." onRetry={() => refetch()} />
 
   // Group skills by category, preserving display order.
   const grouped = skills.reduce((acc: Record<string, Skill[]>, s: Skill) => {

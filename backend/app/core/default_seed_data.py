@@ -119,6 +119,7 @@ EXPERIENCE_SEED = [
 
 PROJECTS_SEED = [
   {
+    "seed_key": "proj-agent-studio",
     "title": "Devinder AI Agent Studio – AI Agent Orchestration Platform",
     "short_description": "Local-first platform to build configurable AI agents, wire them into visual LangGraph workflows, run them, and monitor live execution — with Telegram and scheduling channels.",
     "detailed_description": "Full-stack platform where users create configurable AI agents (role, system prompt, model, tools, memory, guardrails, limits) and connect them in a visual drag-and-drop workflow builder. Workflows compile to a LangGraph StateGraph executed node-by-node with conditional routing, while a WebSocket-powered Run Monitor streams live logs, agent messages, tool calls, token usage and cost. Supports multiple LLM providers (OpenAI, Groq, Google Gemini, plus a deterministic mock LLM), tool calling (DuckDuckGo search, calculator), run durability with retries, recurring schedules via APScheduler, and external interaction through a Telegram bot.",
@@ -143,6 +144,7 @@ PROJECTS_SEED = [
     "is_active": True
   },
   {
+    "seed_key": "proj-rag-langchain",
     "title": "RAG Pipeline with LangChain & Google Gemini",
     "short_description": "Production-style Retrieval-Augmented Generation pipeline using LangChain and Google Gemini for context-aware LLM responses.",
     "detailed_description": "Built a Retrieval-Augmented Generation pipeline over custom document corpora using LangChain and Google Gemini. The system enables context-aware LLM responses and supports an end-user-facing Streamlit application with prompt optimization workflows.",
@@ -164,6 +166,7 @@ PROJECTS_SEED = [
     "is_active": True
   },
   {
+    "seed_key": "proj-credilink",
     "title": "CrediLink – P2P Lending Platform",
     "short_description": "Peer-to-peer lending platform with borrower/lender roles, loan workflows, guarantor approval, EMI engine, and credit score logic.",
     "detailed_description": "Developed a backend-driven P2P lending platform with role-based access for lenders and borrowers. Implemented loan request workflows, guarantor approval, EMI tracking, repayment logic, and dynamic credit score calculation.",
@@ -186,6 +189,7 @@ PROJECTS_SEED = [
     "is_active": True
   },
   {
+    "seed_key": "proj-tpc",
     "title": "TPC Management System",
     "short_description": "MERN stack management system for tracking volunteers and students.",
     "detailed_description": "Built a management system for TPC to keep records of volunteers and students using MongoDB, Express.js, React.js, and Node.js.",
@@ -206,6 +210,7 @@ PROJECTS_SEED = [
     "is_active": True
   },
   {
+    "seed_key": "proj-arunmobilecare",
     "title": "ArunMobileCare.com",
     "short_description": "CRM website for managing mobile shop customer and repair records.",
     "detailed_description": "Built a CRM-style website for a mobile repair shop to manage customer records and track mobile repair status.",

@@ -2,10 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/services/api'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Helmet } from 'react-helmet-async'
+import { LoadError } from '@/components/LoadError'
 import { API_ROUTES, QUERY_KEYS } from '@/constants'
 
 export function PublicEducation() {
-  const { data: eduResp, isLoading } = useQuery({
+  const { data: eduResp, isLoading, isError, refetch } = useQuery({
     queryKey: QUERY_KEYS.PUBLIC_EDUCATION,
     queryFn: () => apiClient.get(API_ROUTES.EDUCATION)
   })
@@ -13,6 +14,7 @@ export function PublicEducation() {
   const education = eduResp?.data || []
 
   if (isLoading) return <div className="p-8">Loading education...</div>
+  if (isError) return <LoadError message="Couldn't load education." onRetry={() => refetch()} />
 
   return (
     <div className="container mx-auto p-4 sm:p-8 space-y-8 max-w-4xl">

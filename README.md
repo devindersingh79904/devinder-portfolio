@@ -7,13 +7,19 @@ Built with **FastAPI**, **PostgreSQL**, **React**, **Vite**, **Tailwind CSS**, a
 ## Features
 
 - **Public Portfolio**: Showcase your projects, experience, **education**, **skills**, and certifications — each with its own page and top navigation.
-- **JD Match Engine**: HR professionals can paste a Job Description to get an instant match score, missing skills gap analysis, and automatically highlighted relevant past projects/experience.
-- **Admin Dashboard**: Full CRUD management of portfolio content, JD query analytics, contact leads, and resume uploads, including **CSV export** of JD queries and contact leads.
-- **Analytics**: Page views, project clicks, resume downloads, contact, and JD-match submissions are tracked (frontend tracking is gated by `VITE_ENABLE_ANALYTICS`).
-- **Certification Status**: Derived automatically from the expiry date (`Active` / `Expired` / `No Expiry`) — no manual upkeep.
-- **Soft Deletes**: Active/inactive toggle for portfolio entities instead of permanent deletion.
-- **Resume Management**: Direct PDF upload endpoint with a configurable size limit (`MAX_RESUME_SIZE_MB`).
-- **Rate Limiting**: Protection against abuse on public endpoints using `slowapi`.
+- **Dynamic Contact Page**: Email, phone, LinkedIn, GitHub, location, and a résumé download — all driven by the admin-editable profile (no lead form).
+- **JD Match Engine**: HR professionals paste a Job Description to get a match score, skills-gap analysis, and highlighted relevant projects/experience. **LLM-powered via Claude** (`ANTHROPIC_API_KEY` / `JD_MATCH_MODEL`), with an automatic fallback to an offline keyword heuristic when no key is configured. The API key, model, and on/off switch are configurable from env **or** the admin Settings page.
+- **Site Settings & Feature Toggles**: An admin Settings page toggles JD Match and the visibility of each public section (Projects, Skills, Experience, Education, Certifications, Contact, Résumé) and analytics. Disabled sections are hidden in the nav and gated (403) at the API.
+- **Admin Dashboard**: Full CRUD management of portfolio content (two-way active/inactive toggle), JD query analytics, contact leads, resume uploads, and **CSV export**. Includes an in-panel **change-password** form.
+- **Seeded Admin**: Auto-created on startup from `DEFAULT_ADMIN_EMAIL` / `DEFAULT_ADMIN_PASSWORD` (admin URL: `/admin/login`).
+- **Hardened Auth**: Short-lived JWT access token (in memory) + a long-lived **httpOnly refresh-cookie** with `/admin/refresh` and `/admin/logout`.
+- **Analytics**: Page views, project clicks, resume downloads, contact, and JD-match submissions are tracked (gated by `VITE_ENABLE_ANALYTICS` and the admin analytics toggle).
+- **Certification Status**: Derived automatically from the expiry date (`Active` / `Expired` / `No Expiry`).
+- **Resume Management**: PDF upload validated by extension, content-type, **and magic bytes**, with a configurable size limit (`MAX_RESUME_SIZE_MB`).
+- **SEO**: Per-page Open Graph / Twitter tags, JSON-LD `Person` data, `robots.txt`, and `sitemap.xml`.
+- **Rate Limiting**: Protection against abuse on public/auth endpoints using `slowapi`.
+
+> **Reproducibility**: `backend/requirements.txt` is version-pinned and a `backend/.dockerignore` keeps developer `.env`/venv out of the image (so the container uses the compose-provided `DATABASE_URL=…@postgres`). The frontend builds with `npm ci`.
 
 ## Environment Variables (.env)
 

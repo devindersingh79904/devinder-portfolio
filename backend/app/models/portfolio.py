@@ -19,6 +19,7 @@ class Project(BaseModel):
     is_featured = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
     updated_by = Column(String, nullable=True)
+    seed_key = Column(String, nullable=True)  # stable identity for idempotent seeding
 
 class Experience(BaseModel):
     __tablename__ = "experience"
@@ -35,6 +36,7 @@ class Experience(BaseModel):
     display_order = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
     updated_by = Column(String, nullable=True)
+    seed_key = Column(String, nullable=True)  # stable identity for idempotent seeding
 
 class Education(BaseModel):
     __tablename__ = "education"
@@ -49,6 +51,7 @@ class Education(BaseModel):
     display_order = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
     updated_by = Column(String, nullable=True)
+    seed_key = Column(String, nullable=True)  # stable identity for idempotent seeding
 
 class Certification(BaseModel):
     __tablename__ = "certifications"
@@ -63,6 +66,7 @@ class Certification(BaseModel):
     display_order = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
     updated_by = Column(String, nullable=True)
+    seed_key = Column(String, nullable=True)  # stable identity for idempotent seeding
 
 class Skill(BaseModel):
     __tablename__ = "skills"
@@ -74,3 +78,4 @@ class Skill(BaseModel):
     display_order = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
     updated_by = Column(String, nullable=True)
+    seed_key = Column(String, nullable=True)  # stable identity for idempotent seeding

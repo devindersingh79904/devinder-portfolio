@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from io import StringIO
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from fastapi import APIRouter, Cookie, Depends, File, Form, Request, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -25,6 +25,9 @@ from app.core.constants import (
     ADMIN_JD_QUERY_DETAIL_PATH,
     ADMIN_JD_QUERIES_PATH,
     ADMIN_LOGIN_PATH,
+    ADMIN_REFRESH_PATH,
+    ADMIN_LOGOUT_PATH,
+    ADMIN_CHANGE_PASSWORD_PATH,
     ADMIN_PREFIX,
     ADMIN_PROFILE_PATH,
     ADMIN_PROFILE_RESUME_PATH,
@@ -41,7 +44,15 @@ from app.core.constants import (
 from app.core.config import settings
 from app.core.exceptions import ErrorCodes, PortfolioException
 from app.core.rate_limit import limiter
-from app.core.security import create_access_token, verify_password
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    get_password_hash,
+    validate_password_warnings,
+    verify_password,
+)
+from app.core.security import decode_access_token
+import logging
 from app.db.database import get_db
 from app.models.admin import AdminUser
 from app.models.analytics import AnalyticsEvent
@@ -55,9 +66,9 @@ from app.repositories.portfolio import (
 )
 from app.repositories.profile import profile_repo
 from app.repositories.queries import contact_lead_repo, jd_query_repo
-from app.repositories.settings import get_or_create_settings, site_settings_repo
+from app.repositories.settings import get_or_create_settings, settings_to_out, site_settings_repo
 from app.routers.deps import get_current_admin
-from app.schemas.admin import AdminLogin, DashboardStats, Token
+from app.schemas.admin import AdminLogin, ChangePasswordRequest, DashboardStats, Token
 from app.schemas.common import APIResponse
 from app.schemas.portfolio import (
     CertificationCreate,
@@ -87,15 +98,67 @@ from app.utils.response import success_response
 
 router = APIRouter(prefix=f"/api/v1{ADMIN_PREFIX}")
 
+logger = logging.getLogger(__name__)
+
+# Refresh cookie is scoped to the admin API path so it's only sent to admin routes.
+REFRESH_COOKIE_PATH = f"/api/v1{ADMIN_PREFIX}"
+
+def _set_refresh_cookie(response: Response, email: str):
+    refresh_token = create_refresh_token(data={"sub": email})
+    response.set_cookie(
+        key=settings.REFRESH_COOKIE_NAME,
+        value=refresh_token,
+        httponly=True,
+        secure=settings.REFRESH_COOKIE_SECURE,
+        samesite="lax",
+        path=REFRESH_COOKIE_PATH,
+        max_age=settings.JWT_REFRESH_EXPIRE_DAYS * 24 * 3600,
+    )
+
 @router.post(ADMIN_LOGIN_PATH, response_model=APIResponse[Token])
 @limiter.limit(RATE_LIMIT_ADMIN_LOGIN)
-def login(request: Request, credentials: AdminLogin, db: Session = Depends(get_db)):
+def login(request: Request, credentials: AdminLogin, response: Response, db: Session = Depends(get_db)):
     admin = db.query(AdminUser).filter(AdminUser.email == credentials.email).first()
     if not admin or not verify_password(credentials.password, admin.password_hash):
         raise PortfolioException("Incorrect email or password", ErrorCodes.AUTH_ERROR, 401)
-    
+
     access_token = create_access_token(data={"sub": admin.email, "type": "admin"})
+    _set_refresh_cookie(response, admin.email)
     return success_response(data=Token(access_token=access_token, token_type="bearer").model_dump())
+
+@router.post(ADMIN_REFRESH_PATH, response_model=APIResponse[Token])
+@limiter.limit(RATE_LIMIT_ADMIN_LOGIN)
+def refresh(request: Request, response: Response, db: Session = Depends(get_db)):
+    token = request.cookies.get(settings.REFRESH_COOKIE_NAME)
+    if not token:
+        raise PortfolioException("Missing refresh token", ErrorCodes.AUTH_ERROR, 401)
+    payload = decode_access_token(token)
+    if payload.get("type") != "refresh":
+        raise PortfolioException("Invalid refresh token", ErrorCodes.AUTH_ERROR, 401)
+    email = payload.get("sub")
+    admin = db.query(AdminUser).filter(AdminUser.email == email, AdminUser.is_active == True).first()
+    if admin is None:
+        raise PortfolioException("Admin user not found or inactive", ErrorCodes.AUTH_ERROR, 401)
+
+    access_token = create_access_token(data={"sub": admin.email, "type": "admin"})
+    _set_refresh_cookie(response, admin.email)  # rotate
+    return success_response(data=Token(access_token=access_token, token_type="bearer").model_dump())
+
+@router.post(ADMIN_LOGOUT_PATH, response_model=APIResponse)
+def logout(response: Response):
+    response.delete_cookie(settings.REFRESH_COOKIE_NAME, path=REFRESH_COOKIE_PATH)
+    return success_response(message="Logged out")
+
+@router.post(ADMIN_CHANGE_PASSWORD_PATH, response_model=APIResponse)
+def change_password(payload: ChangePasswordRequest, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
+    if not verify_password(payload.current_password, current_admin.password_hash):
+        raise PortfolioException("Current password is incorrect", ErrorCodes.AUTH_ERROR, 401)
+    # Warn-only password policy: log a warning for weak passwords but allow them.
+    for warning in validate_password_warnings(payload.new_password):
+        logger.warning("Admin %s set a password that is %s", current_admin.email, warning)
+    current_admin.password_hash = get_password_hash(payload.new_password)
+    db.commit()
+    return success_response(message="Password changed successfully")
 
 @router.get(ADMIN_PROFILE_PATH, response_model=APIResponse[ProfileOut])
 def get_admin_profile(db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
@@ -129,6 +192,15 @@ def upload_resume(
     if not file.filename.lower().endswith('.pdf'):
         raise PortfolioException("Only PDF files are allowed", ErrorCodes.VALIDATION_ERROR, 400)
 
+    if file.content_type not in ("application/pdf", "application/x-pdf"):
+        raise PortfolioException("File must be a PDF (content-type mismatch)", ErrorCodes.VALIDATION_ERROR, 400)
+
+    # Validate the PDF magic bytes so a renamed non-PDF is rejected.
+    header = file.file.read(5)
+    file.file.seek(0)
+    if header != b"%PDF-":
+        raise PortfolioException("File is not a valid PDF", ErrorCodes.VALIDATION_ERROR, 400)
+
     file.file.seek(0, 2)
     file_size = file.file.tell()
     file.file.seek(0)
@@ -159,13 +231,18 @@ def upload_resume(
 # Site settings (feature flags)
 @router.get(ADMIN_SETTINGS_PATH, response_model=APIResponse[SiteSettingsOut])
 def get_admin_settings(db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
-    return success_response(data=get_or_create_settings(db))
+    return success_response(data=settings_to_out(get_or_create_settings(db)))
 
 @router.put(ADMIN_SETTINGS_PATH, response_model=APIResponse[SiteSettingsOut])
 def update_admin_settings(settings_update: SiteSettingsUpdate, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
     settings_row = get_or_create_settings(db)
-    updated = site_settings_repo.update(db, db_obj=settings_row, obj_in=settings_update)
-    return success_response(data=updated)
+    # exclude_unset so omitted fields are untouched. The write-only API key: an empty
+    # string clears the DB override (revert to env); a non-empty value sets a custom key.
+    data = settings_update.model_dump(exclude_unset=True)
+    if "anthropic_api_key" in data:
+        data["anthropic_api_key"] = data["anthropic_api_key"] or None
+    updated = site_settings_repo.update(db, db_obj=settings_row, obj_in=data)
+    return success_response(data=settings_to_out(updated))
 
 # Generic CRUD generator
 def register_crud(router: APIRouter, path: str, path_detail: str, repo, out_schema, create_schema, update_schema):

@@ -1,27 +1,40 @@
 import { Outlet, Link, useNavigate, Navigate, useLocation } from "react-router-dom"
-import { ROUTES, STORAGE_KEYS } from "@/constants"
+import { ROUTES, API_ROUTES } from "@/constants"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
 import { Menu } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
+import { apiClient, tryRefresh } from "@/services/api"
+import { getAccessToken, clearAccessToken } from "@/services/auth"
 
 export function AdminLayout() {
-  const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  // null = checking; true/false = authenticated or not (survives hard reload via refresh cookie).
+  const [authed, setAuthed] = useState<boolean | null>(getAccessToken() ? true : null)
+
+  useEffect(() => {
+    if (authed === null) {
+      tryRefresh().then(ok => setAuthed(ok))
+    }
+  }, [authed])
 
   // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false)
   }, [location.pathname])
 
-  if (!token) {
+  if (authed === null) {
+    return <div className="p-8 text-muted-foreground">Authenticating…</div>
+  }
+  if (!authed) {
     return <Navigate to={ROUTES.ADMIN_LOGIN} replace />
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
+  const handleLogout = async () => {
+    try { await apiClient.post(API_ROUTES.ADMIN_LOGOUT) } catch { /* ignore */ }
+    clearAccessToken()
     navigate(ROUTES.ADMIN_LOGIN)
   }
 

@@ -2,19 +2,23 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient, getResumeDownloadUrl } from '@/services/api'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Helmet } from 'react-helmet-async'
+import { Avatar } from '@/components/ui/avatar'
+import { Seo } from '@/components/Seo'
+import { LoadError } from '@/components/LoadError'
 // lucide brand icons (Linkedin/Github) aren't bundled in this build; use generic ones.
 import { Mail, Phone, Briefcase, Code2, MapPin, Download } from 'lucide-react'
 import { API_ROUTES, QUERY_KEYS } from '@/constants'
 import type { Profile } from '@/types'
 
 export function Contact() {
-  const { data: profileResp, isLoading } = useQuery({
+  const { data: profileResp, isLoading, isError, refetch } = useQuery({
     queryKey: QUERY_KEYS.PUBLIC_PROFILE,
     queryFn: () => apiClient.get(API_ROUTES.PROFILE)
   })
 
   const profile: Profile | undefined = (profileResp as any)?.data
+
+  if (isError) return <LoadError message="Couldn't load contact details." onRetry={() => refetch()} />
 
   const items = [
     profile?.email && {
@@ -52,11 +56,14 @@ export function Contact() {
 
   return (
     <div className="container mx-auto p-4 sm:p-8 max-w-2xl space-y-8">
-      <Helmet>
-        <title>Contact - Portfolio</title>
-      </Helmet>
+      <Seo title="Contact - Portfolio" description="Get in touch — email, phone, LinkedIn, and GitHub." image={profile?.profileImageUrl} />
 
       <div className="space-y-4 text-center">
+        {(profile?.profileImageUrl || profile?.fullName) && (
+          <div className="flex justify-center">
+            <Avatar src={profile?.profileImageUrl} name={profile?.fullName} className="h-24 w-24" />
+          </div>
+        )}
         <h1 className="text-4xl font-extrabold tracking-tight">Get In Touch</h1>
         <p className="text-lg text-muted-foreground">
           Feel free to reach out through any of the channels below.

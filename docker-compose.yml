@@ -33,6 +33,17 @@ services:
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-*}
       - ENABLE_DEFAULT_SEED=${ENABLE_DEFAULT_SEED:-true}
       - AUTO_SEED_ON_STARTUP=${AUTO_SEED_ON_STARTUP:-false}
+      # Env-driven default admin (auto-seeded on startup when both are set).
+      - DEFAULT_ADMIN_EMAIL=${DEFAULT_ADMIN_EMAIL:-}
+      - DEFAULT_ADMIN_PASSWORD=${DEFAULT_ADMIN_PASSWORD:-}
+      - DEFAULT_ADMIN_NAME=${DEFAULT_ADMIN_NAME:-Admin}
+      # JD Match LLM (optional; falls back to offline matching / admin-Settings override).
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - JD_MATCH_MODEL=${JD_MATCH_MODEL:-claude-haiku-4-5}
+      # Auth token lifetimes + refresh cookie security.
+      - JWT_ACCESS_EXPIRE_MINUTES=${JWT_ACCESS_EXPIRE_MINUTES:-60}
+      - JWT_REFRESH_EXPIRE_DAYS=${JWT_REFRESH_EXPIRE_DAYS:-7}
+      - REFRESH_COOKIE_SECURE=${REFRESH_COOKIE_SECURE:-true}
     depends_on:
       postgres:
         condition: service_healthy

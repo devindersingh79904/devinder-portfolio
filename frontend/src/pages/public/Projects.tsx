@@ -2,8 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/services/api'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Helmet } from 'react-helmet-async'
-import { Link, useNavigate } from 'react-router-dom'
+import { Seo } from '@/components/Seo'
+import { LoadError } from '@/components/LoadError'
+import { Link } from 'react-router-dom'
 import { API_ROUTES } from '@/constants/apiRoutes'
 import { ROUTES } from '@/constants/routes'
 import { QUERY_KEYS } from '@/constants'
@@ -11,8 +12,7 @@ import { trackEvent } from '@/services/analytics'
 import { ANALYTICS_EVENTS } from '@/constants/analyticsEvents'
 
 export function PublicProjects() {
-  const navigate = useNavigate()
-  const { data: projectsResp, isLoading } = useQuery({
+  const { data: projectsResp, isLoading, isError, refetch } = useQuery({
     queryKey: QUERY_KEYS.PUBLIC_PROJECTS,
     queryFn: () => apiClient.get(API_ROUTES.PROJECTS)
   })
@@ -20,33 +20,26 @@ export function PublicProjects() {
   const projects = projectsResp?.data || []
 
   if (isLoading) return <div className="p-8">Loading projects...</div>
+  if (isError) return <LoadError message="Couldn't load projects." onRetry={() => refetch()} />
 
   return (
     <div className="container mx-auto p-4 sm:p-8 space-y-8">
-      <Helmet>
-        <title>Projects - Portfolio</title>
-      </Helmet>
+      <Seo title="Projects - Portfolio" description="Selected software projects and case studies." />
       <h1 className="text-4xl font-extrabold tracking-tight">All Projects</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {projects.map((p: any) => (
-          <Card
-            key={p.id}
-            role="link"
-            tabIndex={0}
-            className="cursor-pointer transition-shadow hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            onClick={() => {
-              trackEvent(ANALYTICS_EVENTS.PROJECT_CLICKED, undefined, { projectId: p.id, title: p.title })
-              navigate(ROUTES.PROJECT_DETAIL_BUILD(p.id))
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                navigate(ROUTES.PROJECT_DETAIL_BUILD(p.id))
-              }
-            }}
-          >
+          <Card key={p.id} className="relative transition-shadow hover:shadow-lg">
             <CardHeader>
-              <CardTitle>{p.title}</CardTitle>
+              {/* Stretched link: the title is the single real link; its overlay makes the whole card clickable. */}
+              <CardTitle>
+                <Link
+                  to={ROUTES.PROJECT_DETAIL_BUILD(p.id)}
+                  onClick={() => trackEvent(ANALYTICS_EVENTS.PROJECT_CLICKED, undefined, { projectId: p.id, title: p.title })}
+                  className="after:absolute after:inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                >
+                  {p.title}
+                </Link>
+              </CardTitle>
               <CardDescription>{p.shortDescription}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -57,31 +50,21 @@ export function PublicProjects() {
                     ))}
                   </div>
               )}
-              <div className="flex gap-4">
-                <Button variant="default" className="p-0 px-4" asChild>
-                  <Link
-                    to={ROUTES.PROJECT_DETAIL_BUILD(p.id)}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      trackEvent(ANALYTICS_EVENTS.PROJECT_CLICKED, undefined, { projectId: p.id, title: p.title })
-                    }}
-                  >
-                    View Details
-                  </Link>
-                </Button>
+              {/* relative z-10 lifts these above the title's stretched overlay so they stay clickable */}
+              <div className="relative z-10 flex gap-4">
                 {p.liveUrl && (
                   <Button variant="link" className="p-0" asChild>
-                    <a href={p.liveUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>Live Demo &rarr;</a>
+                    <a href={p.liveUrl} target="_blank" rel="noreferrer">Live Demo &rarr;</a>
                   </Button>
                 )}
                 {p.githubUrl && (
                   <Button variant="link" className="p-0 text-muted-foreground" asChild>
-                    <a href={p.githubUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>GitHub</a>
+                    <a href={p.githubUrl} target="_blank" rel="noreferrer">GitHub</a>
                   </Button>
                 )}
                 {p.architectureUrl && (
                   <Button variant="link" className="p-0 text-muted-foreground" asChild>
-                    <a href={p.architectureUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>Architecture</a>
+                    <a href={p.architectureUrl} target="_blank" rel="noreferrer">Architecture</a>
                   </Button>
                 )}
               </div>

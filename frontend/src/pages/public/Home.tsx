@@ -2,8 +2,10 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient, getResumeDownloadUrl } from '@/services/api'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Helmet } from 'react-helmet-async'
-import { Link, useNavigate } from 'react-router-dom'
+import { Avatar } from '@/components/ui/avatar'
+import { LoadError } from '@/components/LoadError'
+import { Seo } from '@/components/Seo'
+import { Link } from 'react-router-dom'
 import { API_ROUTES } from '@/constants/apiRoutes'
 import { ROUTES } from '@/constants/routes'
 import { QUERY_KEYS } from '@/constants'
@@ -12,8 +14,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analyticsEvents'
 import type { Project, Profile } from '@/types'
 
 export function Home() {
-  const navigate = useNavigate()
-  const { data: profileResp, isLoading: isProfileLoading } = useQuery({
+  const { data: profileResp, isLoading: isProfileLoading, isError, refetch } = useQuery({
     queryKey: QUERY_KEYS.PUBLIC_PROFILE,
     queryFn: () => apiClient.get(API_ROUTES.PROFILE)
   })
@@ -25,18 +26,37 @@ export function Home() {
 
   const profile: Profile | undefined = (profileResp as any)?.data
   const projects: Project[] = (projectsResp as any)?.data || []
+  const featured = projects.filter((p: Project) => p.isFeatured)
 
   if (isProfileLoading) return <div className="p-8 text-center">Loading profile...</div>
+  if (isError) return <LoadError message="Couldn't load the portfolio. Is the API running?" onRetry={() => refetch()} />
+
+  const jsonLd = profile && {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: profile.fullName,
+    jobTitle: profile.headline,
+    email: profile.email,
+    image: profile.profileImageUrl || undefined,
+    sameAs: [profile.linkedinUrl, profile.githubUrl].filter(Boolean),
+  }
 
   return (
     <div className="container mx-auto p-4 sm:p-8 space-y-12">
-      <Helmet>
-        <title>{profile?.fullName || 'Portfolio'} - Home</title>
-        <meta name="description" content={profile?.summary || 'Personal portfolio website'} />
-      </Helmet>
+      <Seo
+        title={`${profile?.fullName || 'Portfolio'} - Home`}
+        description={profile?.summary || 'Personal portfolio website'}
+        image={profile?.profileImageUrl}
+        jsonLd={jsonLd}
+      />
 
       {/* Hero Section */}
       <section className="text-center space-y-4 py-12 sm:py-20 bg-muted/30 rounded-xl px-4">
+        {(profile?.profileImageUrl || profile?.fullName) && (
+          <div className="flex justify-center">
+            <Avatar src={profile?.profileImageUrl} name={profile?.fullName} className="h-28 w-28" />
+          </div>
+        )}
         <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">{profile?.fullName || 'Your Name'}</h1>
         <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">{profile?.headline || 'Your Title'}</p>
         <p className="max-w-3xl mx-auto text-base sm:text-lg">{profile?.summary}</p>
@@ -58,25 +78,19 @@ export function Home() {
       <section className="space-y-6">
         <h2 className="text-3xl font-bold tracking-tight">Featured Projects</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.filter((p: Project) => p.isFeatured).map((p: Project) => (
-            <Card
-              key={p.id}
-              role="link"
-              tabIndex={0}
-              className="cursor-pointer transition-shadow hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              onClick={() => {
-                trackEvent(ANALYTICS_EVENTS.PROJECT_CLICKED, undefined, { projectId: p.id, title: p.title })
-                navigate(ROUTES.PROJECT_DETAIL_BUILD(p.id))
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  navigate(ROUTES.PROJECT_DETAIL_BUILD(p.id))
-                }
-              }}
-            >
+          {featured.map((p: Project) => (
+            <Card key={p.id} className="relative transition-shadow hover:shadow-lg">
               <CardHeader>
-                <CardTitle>{p.title}</CardTitle>
+                {/* Stretched link: the title is the single real link; its overlay makes the whole card clickable. */}
+                <CardTitle>
+                  <Link
+                    to={ROUTES.PROJECT_DETAIL_BUILD(p.id)}
+                    onClick={() => trackEvent(ANALYTICS_EVENTS.PROJECT_CLICKED, undefined, { projectId: p.id, title: p.title })}
+                    className="after:absolute after:inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                  >
+                    {p.title}
+                  </Link>
+                </CardTitle>
                 <CardDescription className="line-clamp-3">{p.shortDescription}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -87,33 +101,23 @@ export function Home() {
                     ))}
                   </div>
                 )}
-                <div className="flex gap-2">
-                  <Button variant="default" className="p-0 px-4" asChild>
-                    <Link
-                      to={ROUTES.PROJECT_DETAIL_BUILD(p.id)}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        trackEvent(ANALYTICS_EVENTS.PROJECT_CLICKED, undefined, { projectId: p.id, title: p.title })
-                      }}
-                    >
-                      View Details
-                    </Link>
-                  </Button>
+                {/* relative z-10 lifts these above the title's stretched overlay so they stay clickable */}
+                <div className="relative z-10 flex gap-4">
                   {p.liveUrl && (
                     <Button variant="link" className="p-0" asChild>
-                      <a href={p.liveUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>Live Demo &rarr;</a>
+                      <a href={p.liveUrl} target="_blank" rel="noreferrer">Live Demo &rarr;</a>
                     </Button>
                   )}
                   {p.githubUrl && (
                     <Button variant="link" className="p-0 text-muted-foreground" asChild>
-                      <a href={p.githubUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>GitHub</a>
+                      <a href={p.githubUrl} target="_blank" rel="noreferrer">GitHub</a>
                     </Button>
                   )}
                 </div>
               </CardContent>
             </Card>
           ))}
-          {projects.filter((p: Project) => p.isFeatured).length === 0 && (
+          {featured.length === 0 && (
             <p className="text-muted-foreground">No featured projects found.</p>
           )}
         </div>

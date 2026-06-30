@@ -12,6 +12,10 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
 class DashboardStats(BaseModel):
     totalJdQueries: int
     averageMatchScore: float

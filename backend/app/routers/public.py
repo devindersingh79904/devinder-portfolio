@@ -48,13 +48,18 @@ from app.schemas.portfolio import (
     JDQueryCreate,
     ProfileOut,
     ProjectOut,
-    SiteSettingsOut,
+    PublicSettingsOut,
     SkillOut,
 )
 from app.services.jd_match import calculate_jd_match
 from app.utils.response import success_response
 
 router = APIRouter(prefix=API_V1_PREFIX)
+
+def _require_section(db: Session, flag: str):
+    """Raise 403 when the given site-settings visibility flag is disabled."""
+    if not getattr(get_or_create_settings(db), flag):
+        raise PortfolioException("This section is currently disabled", ErrorCodes.AUTHORIZATION_ERROR, 403)
 
 @router.get(PROFILE_PATH, response_model=APIResponse[ProfileOut])
 def get_profile(db: Session = Depends(get_db)):
@@ -66,6 +71,7 @@ def get_profile(db: Session = Depends(get_db)):
 
 @router.get(RESUME_DOWNLOAD_PATH)
 def download_resume(request: Request, db: Session = Depends(get_db)):
+    _require_section(db, "resume_enabled")
     profiles = profile_repo.get_multi(db, limit=1)
     if not profiles or not profiles[0].resume_url:
         raise PortfolioException("Resume not found", ErrorCodes.NOT_FOUND, 404)
@@ -95,11 +101,13 @@ def download_resume(request: Request, db: Session = Depends(get_db)):
 
 @router.get(PROJECTS_PATH, response_model=APIResponse[list[ProjectOut]])
 def get_projects(db: Session = Depends(get_db)):
+    _require_section(db, "projects_enabled")
     projects = project_repo.get_multi(db, filters={"is_active": True})
     return success_response(data=projects)
 
 @router.get(PROJECT_DETAIL_PATH, response_model=APIResponse[ProjectOut])
 def get_project(project_id: str, db: Session = Depends(get_db)):
+    _require_section(db, "projects_enabled")
     project = project_repo.get(db, project_id)
     if not project or not project.is_active:
         raise PortfolioException("Project not found", ErrorCodes.NOT_FOUND, 404)
@@ -107,32 +115,37 @@ def get_project(project_id: str, db: Session = Depends(get_db)):
 
 @router.get(EXPERIENCE_PATH, response_model=APIResponse[list[ExperienceOut]])
 def get_experience(db: Session = Depends(get_db)):
+    _require_section(db, "experience_enabled")
     experiences = experience_repo.get_multi(db, filters={"is_active": True})
     return success_response(data=experiences)
 
 @router.get(EDUCATION_PATH, response_model=APIResponse[list[EducationOut]])
 def get_education(db: Session = Depends(get_db)):
+    _require_section(db, "education_enabled")
     educations = education_repo.get_multi(db, filters={"is_active": True})
     return success_response(data=educations)
 
 @router.get(CERTIFICATIONS_PATH, response_model=APIResponse[list[CertificationOut]])
 def get_certifications(db: Session = Depends(get_db)):
+    _require_section(db, "certifications_enabled")
     certs = certification_repo.get_multi(db, filters={"is_active": True})
     return success_response(data=certs)
 
 @router.get(SKILLS_PATH, response_model=APIResponse[list[SkillOut]])
 def get_skills(db: Session = Depends(get_db)):
+    _require_section(db, "skills_enabled")
     skills = skill_repo.get_multi(db, filters={"is_active": True})
     return success_response(data=skills)
 
-@router.get(SETTINGS_PATH, response_model=APIResponse[SiteSettingsOut])
+@router.get(SETTINGS_PATH, response_model=APIResponse[PublicSettingsOut])
 def get_settings(db: Session = Depends(get_db)):
-    # Public feature flags so the frontend can hide/show gated features (e.g. JD Match).
-    return success_response(data=get_or_create_settings(db))
+    # Public visibility flags so the frontend can hide/show gated features/sections.
+    return success_response(data=PublicSettingsOut.model_validate(get_or_create_settings(db)))
 
 @router.post(CONTACT_PATH, response_model=APIResponse)
 @limiter.limit(RATE_LIMIT_CONTACT)
 def submit_contact(request: Request, contact: ContactLeadCreate, db: Session = Depends(get_db)):
+    _require_section(db, "contact_enabled")
     data = contact.model_dump()
     data["ip_address"] = request.client.host if request.client else None
     data["user_agent"] = request.headers.get("user-agent")
@@ -166,9 +179,12 @@ def submit_jd_match(request: Request, query: JDQueryCreate, db: Session = Depend
 
 @router.post(EVENTS_PATH, response_model=APIResponse)
 def submit_analytics_event(request: Request, event: AnalyticsEventCreate, db: Session = Depends(get_db)):
+    # Silently no-op when analytics is disabled (defense-in-depth; frontend also gates).
+    if not get_or_create_settings(db).analytics_enabled:
+        return success_response()
     client_ip = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")
-    
+
     analytics_event_repo.create(db, obj_in={
         "event_type": event.event_type, 
         "metadata_json": event.metadata_json,

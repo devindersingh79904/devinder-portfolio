@@ -74,9 +74,14 @@ def seed_portfolio():
         db.commit()
         print("Experience seeded/updated")
 
-        # Seed Projects
+        # Seed Projects (match by stable seed_key first so renames update in place
+        # instead of creating duplicates; fall back to title for legacy rows).
         for proj_data in PROJECTS_SEED:
-            existing = db.query(Project).filter_by(title=proj_data["title"]).first()
+            existing = None
+            if proj_data.get("seed_key"):
+                existing = db.query(Project).filter_by(seed_key=proj_data["seed_key"]).first()
+            if not existing:
+                existing = db.query(Project).filter_by(title=proj_data["title"]).first()
             if existing:
                 for key, value in proj_data.items():
                     setattr(existing, key, value)
