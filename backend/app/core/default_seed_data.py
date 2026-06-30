@@ -7,7 +7,7 @@ PROFILE_SEED = {
   "phone": "+91 7696555536",
   "linkedin_url": "https://linkedin.com/in/devindersingh79904",
   "github_url": "https://github.com/devindersingh79904",
-  "profile_image_url": None,
+  "profile_image_url": "/profile.jpg",
   "resume_url": None,
   "resume_file_name": None,
   "resume_updated_at": None
