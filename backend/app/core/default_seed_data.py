@@ -119,6 +119,30 @@ EXPERIENCE_SEED = [
 
 PROJECTS_SEED = [
   {
+    "title": "Devinder AI Agent Studio – AI Agent Orchestration Platform",
+    "short_description": "Local-first platform to build configurable AI agents, wire them into visual LangGraph workflows, run them, and monitor live execution — with Telegram and scheduling channels.",
+    "detailed_description": "Full-stack platform where users create configurable AI agents (role, system prompt, model, tools, memory, guardrails, limits) and connect them in a visual drag-and-drop workflow builder. Workflows compile to a LangGraph StateGraph executed node-by-node with conditional routing, while a WebSocket-powered Run Monitor streams live logs, agent messages, tool calls, token usage and cost. Supports multiple LLM providers (OpenAI, Groq, Google Gemini, plus a deterministic mock LLM), tool calling (DuckDuckGo search, calculator), run durability with retries, recurring schedules via APScheduler, and external interaction through a Telegram bot.",
+    "problem_solved": "Lets users design, run, and observe multi-agent LLM workflows visually without writing orchestration code, while keeping execution durable, guardrailed, and reachable from channels like Telegram and schedules.",
+    "tech_stack": ["Python", "FastAPI", "LangGraph", "LangChain", "WebSockets", "PostgreSQL", "SQLite", "SQLAlchemy", "Alembic", "APScheduler", "OpenAI", "Groq", "Google Gemini", "python-telegram-bot", "React", "TypeScript", "Vite", "React Flow", "Tailwind CSS", "Docker"],
+    "features": [
+      "Configurable agent CRUD (role, prompt, model, tools, memory, guardrails, limits)",
+      "Visual drag-and-drop workflow builder (React Flow) with conditional branching",
+      "LangGraph StateGraph runtime with conditional routing and cyclical loops",
+      "Live WebSocket run monitor with replay: logs, messages, tool calls, token usage & cost",
+      "Multi-provider LLMs (OpenAI, Groq, Google Gemini, deterministic mock)",
+      "LLM tool calling (DuckDuckGo search, calculator, knowledge-base lookup, summarizer)",
+      "Per-agent memory injected across runs for context awareness",
+      "Telegram bot channel + recurring scheduled runs (APScheduler) with durable retries & guardrails"
+    ],
+    "github_url": "https://github.com/devindersingh79904/agent-platform",
+    "live_url": "https://aistudio.devinderpanesar.com/",
+    "demo_url": "https://drive.google.com/file/d/1EBveeLeAreKX1ie9QPXAKyssOXeLPjHT/view?usp=sharing",
+    "architecture_url": None,
+    "display_order": 1,
+    "is_featured": True,
+    "is_active": True
+  },
+  {
     "title": "RAG Pipeline with LangChain & Google Gemini",
     "short_description": "Production-style Retrieval-Augmented Generation pipeline using LangChain and Google Gemini for context-aware LLM responses.",
     "detailed_description": "Built a Retrieval-Augmented Generation pipeline over custom document corpora using LangChain and Google Gemini. The system enables context-aware LLM responses and supports an end-user-facing Streamlit application with prompt optimization workflows.",
@@ -135,7 +159,7 @@ PROJECTS_SEED = [
     "live_url": None,
     "demo_url": None,
     "architecture_url": None,
-    "display_order": 1,
+    "display_order": 2,
     "is_featured": True,
     "is_active": True
   },
@@ -154,10 +178,10 @@ PROJECTS_SEED = [
       "REST API backend"
     ],
     "github_url": None,
-    "live_url": "https://credilink.onrender.com",
+    "live_url": None,
     "demo_url": None,
     "architecture_url": None,
-    "display_order": 2,
+    "display_order": 3,
     "is_featured": True,
     "is_active": True
   },
@@ -174,10 +198,10 @@ PROJECTS_SEED = [
       "Admin-style management workflow"
     ],
     "github_url": None,
-    "live_url": "https://dcsatpc.herokuapp.com/",
+    "live_url": None,
     "demo_url": None,
     "architecture_url": None,
-    "display_order": 3,
+    "display_order": 4,
     "is_featured": False,
     "is_active": True
   },
@@ -197,7 +221,7 @@ PROJECTS_SEED = [
     "live_url": "https://arunmobilecare.com/",
     "demo_url": None,
     "architecture_url": None,
-    "display_order": 4,
+    "display_order": 5,
     "is_featured": False,
     "is_active": True
   }

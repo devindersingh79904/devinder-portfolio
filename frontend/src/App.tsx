@@ -21,6 +21,7 @@ const NotFound = lazy(() => import("@/pages/NotFound").then(m => ({ default: m.N
 const AdminLogin = lazy(() => import("@/pages/admin/Login").then(m => ({ default: m.AdminLogin })))
 const AdminDashboard = lazy(() => import("@/pages/admin/Dashboard").then(m => ({ default: m.AdminDashboard })))
 const AdminProfile = lazy(() => import("@/pages/admin/Profile").then(m => ({ default: m.AdminProfile })))
+const AdminSettings = lazy(() => import("@/pages/admin/Settings").then(m => ({ default: m.AdminSettings })))
 const GenericCrud = lazy(() => import("@/pages/admin/GenericCrud").then(m => ({ default: m.GenericCrud })))
 
 import { useQuery } from "@tanstack/react-query"
@@ -44,6 +45,13 @@ function App() {
   const skillCategories = enumsData.skillCategories || SKILL_CATEGORIES
   const skillProficiencies = enumsData.skillProficiencies || SKILL_PROFICIENCIES
 
+  const { data: settingsResp } = useQuery({
+    queryKey: QUERY_KEYS.PUBLIC_SETTINGS,
+    queryFn: () => apiClient.get(API_ROUTES.SETTINGS),
+  })
+  // Default to enabled while loading so behavior is unchanged on the happy path.
+  const jdMatchEnabled: boolean = settingsResp?.data?.jdMatchEnabled ?? true
+
   return (
     <ErrorBoundary>
       <Toaster position="top-right" />
@@ -59,7 +67,7 @@ function App() {
           <Route path={ROUTES.EDUCATION} element={<PublicEducation />} />
           <Route path={ROUTES.SKILLS} element={<PublicSkills />} />
           <Route path={ROUTES.CERTIFICATIONS} element={<PublicCertifications />} />
-          <Route path={ROUTES.JD_MATCH} element={<JDMatch />} />
+          <Route path={ROUTES.JD_MATCH} element={jdMatchEnabled ? <JDMatch /> : <NotFound />} />
           <Route path={ROUTES.CONTACT} element={<Contact />} />
           <Route path="*" element={<NotFound />} />
         </Route>
@@ -71,10 +79,11 @@ function App() {
         <Route element={<AdminLayout />}>
           <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboard />} />
           <Route path={ROUTES.ADMIN_PROFILE} element={<AdminProfile />} />
-          <Route path={ROUTES.ADMIN_PROJECTS} element={<GenericCrud 
-            entityName="Projects" 
-            endpoint={API_ROUTES.ADMIN_PROJECTS} 
-            columns={[{key: 'title', label: 'Title'}, {key: 'isFeatured', label: 'Featured'}]} 
+          <Route path={ROUTES.ADMIN_SETTINGS} element={<AdminSettings />} />
+          <Route path={ROUTES.ADMIN_PROJECTS} element={<GenericCrud
+            entityName="Projects"
+            endpoint={API_ROUTES.ADMIN_PROJECTS}
+            columns={[{key: 'title', label: 'Title'}, {key: 'isFeatured', label: 'Featured'}, {key: 'isActive', label: 'Active'}]}
             fields={[
               {key: 'title', label: 'Title', type: 'text', required: true}, 
               {key: 'shortDescription', label: 'Short Description', type: 'text'}, 
@@ -94,7 +103,7 @@ function App() {
           <Route path={ROUTES.ADMIN_EXPERIENCE} element={<GenericCrud
             entityName="Experience"
             endpoint={API_ROUTES.ADMIN_EXPERIENCE}
-            columns={[{key: 'companyName', label: 'Company'}, {key: 'role', label: 'Role'}, {key: 'isCurrent', label: 'Current'}]}
+            columns={[{key: 'companyName', label: 'Company'}, {key: 'role', label: 'Role'}, {key: 'isCurrent', label: 'Current'}, {key: 'isActive', label: 'Active'}]}
             fields={[
               {key: 'companyName', label: 'Company', type: 'text', required: true},
               {key: 'role', label: 'Role', type: 'text', required: true},
@@ -112,7 +121,7 @@ function App() {
           <Route path={ROUTES.ADMIN_EDUCATION} element={<GenericCrud
             entityName="Education"
             endpoint={API_ROUTES.ADMIN_EDUCATION}
-            columns={[{key: 'degree', label: 'Degree'}, {key: 'institutionName', label: 'Institution'}]}
+            columns={[{key: 'degree', label: 'Degree'}, {key: 'institutionName', label: 'Institution'}, {key: 'isActive', label: 'Active'}]}
             fields={[
               {key: 'institutionName', label: 'Institution', type: 'text', required: true},
               {key: 'degree', label: 'Degree', type: 'text', required: true},
@@ -128,7 +137,7 @@ function App() {
           <Route path={ROUTES.ADMIN_CERTIFICATIONS} element={<GenericCrud
             entityName="Certifications"
             endpoint={API_ROUTES.ADMIN_CERTIFICATIONS}
-            columns={[{key: 'title', label: 'Name'}, {key: 'issuer', label: 'Issuer'}, {key: 'status', label: 'Status'}]}
+            columns={[{key: 'title', label: 'Name'}, {key: 'issuer', label: 'Issuer'}, {key: 'status', label: 'Status'}, {key: 'isActive', label: 'Active'}]}
             fields={[
               {key: 'title', label: 'Title', type: 'text', required: true},
               {key: 'issuer', label: 'Issuer', type: 'text', required: true},
@@ -144,7 +153,7 @@ function App() {
           <Route path={ROUTES.ADMIN_SKILLS} element={<GenericCrud
             entityName="Skills"
             endpoint={API_ROUTES.ADMIN_SKILLS}
-            columns={[{key: 'name', label: 'Name'}, {key: 'category', label: 'Category'}, {key: 'proficiency', label: 'Proficiency'}]}
+            columns={[{key: 'name', label: 'Name'}, {key: 'category', label: 'Category'}, {key: 'proficiency', label: 'Proficiency'}, {key: 'isActive', label: 'Active'}]}
             fields={[
               {key: 'name', label: 'Name', type: 'text', required: true},
               {key: 'category', label: 'Category', type: 'select', options: skillCategories as string[], required: true},

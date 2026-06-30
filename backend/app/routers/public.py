@@ -21,6 +21,7 @@ from app.core.constants import (
     RATE_LIMIT_CONTACT,
     RATE_LIMIT_JD_MATCH,
     RESUME_DOWNLOAD_PATH,
+    SETTINGS_PATH,
     SKILLS_PATH,
 )
 from app.core.exceptions import ErrorCodes, PortfolioException
@@ -36,6 +37,7 @@ from app.repositories.portfolio import (
 )
 from app.repositories.profile import profile_repo
 from app.repositories.queries import contact_lead_repo
+from app.repositories.settings import get_or_create_settings
 from app.schemas.common import APIResponse
 from app.schemas.portfolio import (
     AnalyticsEventCreate,
@@ -46,6 +48,7 @@ from app.schemas.portfolio import (
     JDQueryCreate,
     ProfileOut,
     ProjectOut,
+    SiteSettingsOut,
     SkillOut,
 )
 from app.services.jd_match import calculate_jd_match
@@ -122,6 +125,11 @@ def get_skills(db: Session = Depends(get_db)):
     skills = skill_repo.get_multi(db, filters={"is_active": True})
     return success_response(data=skills)
 
+@router.get(SETTINGS_PATH, response_model=APIResponse[SiteSettingsOut])
+def get_settings(db: Session = Depends(get_db)):
+    # Public feature flags so the frontend can hide/show gated features (e.g. JD Match).
+    return success_response(data=get_or_create_settings(db))
+
 @router.post(CONTACT_PATH, response_model=APIResponse)
 @limiter.limit(RATE_LIMIT_CONTACT)
 def submit_contact(request: Request, contact: ContactLeadCreate, db: Session = Depends(get_db)):
@@ -142,6 +150,8 @@ def submit_contact(request: Request, contact: ContactLeadCreate, db: Session = D
 @router.post(JD_MATCH_PATH, response_model=APIResponse)
 @limiter.limit(RATE_LIMIT_JD_MATCH)
 def submit_jd_match(request: Request, query: JDQueryCreate, db: Session = Depends(get_db)):
+    if not get_or_create_settings(db).jd_match_enabled:
+        raise PortfolioException("JD Match is currently disabled", ErrorCodes.AUTHORIZATION_ERROR, 403)
     client_ip = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")
     result = calculate_jd_match(db, query, ip_address=client_ip, user_agent=user_agent)

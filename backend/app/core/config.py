@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
-from typing import List
+from typing import List, Optional
 
 # Placeholder secrets that must never be accepted in any environment.
 WEAK_JWT_SECRETS = {
@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     
     ENABLE_DEFAULT_SEED: bool = True
     AUTO_SEED_ON_STARTUP: bool = False
+
+    # Optional env-driven default admin. When both are set, the admin is auto-created
+    # on startup (if not already present). Keeps secrets out of source control.
+    DEFAULT_ADMIN_EMAIL: Optional[str] = None
+    DEFAULT_ADMIN_PASSWORD: Optional[str] = None
+    DEFAULT_ADMIN_NAME: str = "Admin"
 
     UPLOAD_DIR: str = "uploads/resume"
     MAX_RESUME_SIZE_MB: int = 10

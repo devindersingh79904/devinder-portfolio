@@ -24,6 +24,9 @@ export const QUERY_KEYS = {
   
   METADATA_ENUMS: ['metadata', 'enums'] as const,
 
+  PUBLIC_SETTINGS: ['public_settings'] as const,
+  ADMIN_SETTINGS: ['admin_settings'] as const,
+
   GENERIC_CRUD_LIST: (endpoint: string, page: number, size: number) => [endpoint, page, size] as const,
   GENERIC_CRUD: (endpoint: string) => [endpoint] as const,
 };

@@ -259,10 +259,20 @@ export function GenericCrud({ entityName, endpoint, columns, fields = [], readOn
                   })}
                   {!readOnly && (
                     <TableCell>
-                      <div className="flex space-x-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button variant="outline" size="sm" onClick={() => openEditModal(item)}>Edit</Button>
-                        <Button 
-                          variant="destructive" 
+                        {'isActive' in item && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={updateMutation.isPending}
+                            onClick={() => updateMutation.mutate({ id: item.id, data: { isActive: !item.isActive } })}
+                          >
+                            {item.isActive ? 'Deactivate' : 'Activate'}
+                          </Button>
+                        )}
+                        <Button
+                          variant="destructive"
                           size="sm"
                           onClick={() => setDeleteId(item.id)}
                         >

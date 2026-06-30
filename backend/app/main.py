@@ -62,6 +62,12 @@ async def lifespan(app: FastAPI):
             seed_portfolio()
         except Exception:
             logger.exception("Auto-seed on startup failed")
+    # Env-driven default admin. No-op unless DEFAULT_ADMIN_EMAIL/PASSWORD are set.
+    try:
+        from scripts.create_admin import seed_admin_from_env
+        seed_admin_from_env()
+    except Exception:
+        logger.exception("Default admin seeding on startup failed")
     yield
 
 

@@ -35,6 +35,7 @@ export function AdminLayout() {
     { name: "Skills", path: ROUTES.ADMIN_SKILLS },
     { name: "JD Queries", path: ROUTES.ADMIN_JD_QUERIES },
     { name: "Contact Leads", path: ROUTES.ADMIN_CONTACT_LEADS },
+    { name: "Settings", path: ROUTES.ADMIN_SETTINGS },
   ]
 
   return (

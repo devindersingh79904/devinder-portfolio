@@ -113,6 +113,11 @@ def seed_portfolio():
         db.commit()
         print("Certifications seeded/updated")
 
+        # Ensure a single site-settings row exists (feature flags default ON).
+        from app.repositories.settings import get_or_create_settings
+        get_or_create_settings(db)
+        print("Site settings ensured")
+
         print("Portfolio default seed completed successfully.")
         print("You can now update this data from the admin dashboard.")
     except Exception as e:

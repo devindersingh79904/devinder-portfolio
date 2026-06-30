@@ -12,6 +12,7 @@ export const API_ROUTES = {
 
   CONTACT: "/contact",
   JD_MATCH: "/jd-match",
+  SETTINGS: "/settings",
   ANALYTICS_EVENTS: "/analytics/events",
 
   ADMIN_LOGIN: "/admin/login",
@@ -19,6 +20,8 @@ export const API_ROUTES = {
 
   ADMIN_PROFILE: "/admin/profile",
   ADMIN_PROFILE_RESUME: "/admin/profile/resume",
+
+  ADMIN_SETTINGS: "/admin/settings",
 
   ADMIN_PROJECTS: "/admin/projects",
   ADMIN_PROJECT_DETAIL: (id: string) => `/admin/projects/${id}`,

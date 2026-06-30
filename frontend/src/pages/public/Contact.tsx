@@ -1,97 +1,115 @@
-import React, { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
-import { apiClient } from '@/services/api'
+import { useQuery } from '@tanstack/react-query'
+import { apiClient, getResumeDownloadUrl } from '@/services/api'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
 import { Helmet } from 'react-helmet-async'
-import { toast } from 'sonner'
-import { API_ROUTES } from '@/constants'
+// lucide brand icons (Linkedin/Github) aren't bundled in this build; use generic ones.
+import { Mail, Phone, Briefcase, Code2, MapPin, Download } from 'lucide-react'
+import { API_ROUTES, QUERY_KEYS } from '@/constants'
+import type { Profile } from '@/types'
 
 export function Contact() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    company: '',
-    subject: '',
-    message: ''
+  const { data: profileResp, isLoading } = useQuery({
+    queryKey: QUERY_KEYS.PUBLIC_PROFILE,
+    queryFn: () => apiClient.get(API_ROUTES.PROFILE)
   })
-  const [success, setSuccess] = useState(false)
 
-  const contactMutation = useMutation({
-    mutationFn: (data: typeof formData) => apiClient.post(API_ROUTES.CONTACT, data),
-    onSuccess: () => {
-      setSuccess(true)
-      setFormData({ name: '', email: '', company: '', subject: '', message: '' })
-      toast.success('Message sent successfully!')
+  const profile: Profile | undefined = (profileResp as any)?.data
+
+  const items = [
+    profile?.email && {
+      icon: Mail,
+      label: 'Email',
+      value: profile.email,
+      href: `mailto:${profile.email}`,
     },
-    onError: (err: any) => toast.error(err?.message || 'Failed to send message. Please try again.')
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    contactMutation.mutate(formData)
-  }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { id, value } = e.target
-    setFormData(prev => ({ ...prev, [id]: value }))
-  }
+    profile?.phone && {
+      icon: Phone,
+      label: 'Phone',
+      value: profile.phone,
+      href: `tel:${profile.phone.replace(/\s+/g, '')}`,
+    },
+    profile?.linkedinUrl && {
+      icon: Briefcase,
+      label: 'LinkedIn',
+      value: profile.linkedinUrl.replace(/^https?:\/\//, ''),
+      href: profile.linkedinUrl,
+      external: true,
+    },
+    profile?.githubUrl && {
+      icon: Code2,
+      label: 'GitHub',
+      value: profile.githubUrl.replace(/^https?:\/\//, ''),
+      href: profile.githubUrl,
+      external: true,
+    },
+    profile?.location && {
+      icon: MapPin,
+      label: 'Location',
+      value: profile.location,
+    },
+  ].filter(Boolean) as Array<{ icon: any; label: string; value: string; href?: string; external?: boolean }>
 
   return (
     <div className="container mx-auto p-4 sm:p-8 max-w-2xl space-y-8">
       <Helmet>
         <title>Contact - Portfolio</title>
       </Helmet>
-      
+
       <div className="space-y-4 text-center">
         <h1 className="text-4xl font-extrabold tracking-tight">Get In Touch</h1>
         <p className="text-lg text-muted-foreground">
-          Have a question or want to work together? Leave a message below.
+          Feel free to reach out through any of the channels below.
         </p>
       </div>
 
       <Card>
         <CardContent className="pt-6">
-          {success ? (
-            <div className="text-center space-y-4 py-8">
-              <h2 className="text-2xl font-bold text-green-600">Message Sent!</h2>
-              <p className="text-muted-foreground">Thank you for reaching out. I'll get back to you as soon as possible.</p>
-              <Button onClick={() => setSuccess(false)} variant="outline">Send Another Message</Button>
-            </div>
+          {isLoading ? (
+            <p className="text-muted-foreground text-center py-8">Loading contact details...</p>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Name *</Label>
-                  <Input id="name" value={formData.name} onChange={handleChange} required />
+            <div className="space-y-4">
+              {items.map((item) => {
+                const Icon = item.icon
+                const content = (
+                  <div className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/40 transition-colors">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-secondary-foreground shrink-0">
+                      <Icon size={20} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm text-muted-foreground">{item.label}</p>
+                      <p className="font-medium break-words">{item.value}</p>
+                    </div>
+                  </div>
+                )
+                return item.href ? (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    {...(item.external ? { target: '_blank', rel: 'noreferrer' } : {})}
+                    className="block"
+                  >
+                    {content}
+                  </a>
+                ) : (
+                  <div key={item.label}>{content}</div>
+                )
+              })}
+
+              {items.length === 0 && (
+                <p className="text-muted-foreground text-center py-8">Contact details are not available yet.</p>
+              )}
+
+              {profile?.resumeUrl && (
+                <div className="pt-2">
+                  <Button asChild className="w-full" size="lg">
+                    <a href={getResumeDownloadUrl()} target="_blank" rel="noreferrer">
+                      <Download size={18} className="mr-2" /> Download Resume
+                    </a>
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input id="email" type="email" value={formData.email} onChange={handleChange} required />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company (Optional)</Label>
-                  <Input id="company" value={formData.company} onChange={handleChange} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="subject">Subject *</Label>
-                  <Input id="subject" value={formData.subject} onChange={handleChange} required />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="message">Message *</Label>
-                <Textarea id="message" rows={5} value={formData.message} onChange={handleChange} required />
-              </div>
-              
-              <Button type="submit" className="w-full" disabled={contactMutation.isPending}>
-                {contactMutation.isPending ? 'Sending...' : 'Send Message'}
-              </Button>
-            </form>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>

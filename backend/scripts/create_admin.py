@@ -7,6 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.db.database import SessionLocal
 from app.models.admin import AdminUser
 from app.core.security import get_password_hash
+from app.core.config import settings
 
 
 def create_admin(email: str, password: str, name: str):
@@ -27,6 +28,18 @@ def create_admin(email: str, password: str, name: str):
         db.rollback()
     finally:
         db.close()
+
+
+def seed_admin_from_env():
+    """Create the default admin from DEFAULT_ADMIN_EMAIL/PASSWORD env vars if configured.
+
+    Idempotent: skips silently when the vars are unset or the admin already exists.
+    """
+    email = settings.DEFAULT_ADMIN_EMAIL
+    password = settings.DEFAULT_ADMIN_PASSWORD
+    if not email or not password:
+        return
+    create_admin(email, password, settings.DEFAULT_ADMIN_NAME)
 
 
 if __name__ == "__main__":

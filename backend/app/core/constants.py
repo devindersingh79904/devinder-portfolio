@@ -6,6 +6,7 @@ ROOT_PATH = "/"
 HEALTH_PATH = "/health"
 CONTACT_PATH = "/contact"
 JD_MATCH_PATH = "/jd-match"
+SETTINGS_PATH = "/settings"
 PROFILE_PATH = "/profile"
 PROFILE_RESUME_DOWNLOAD_PATH = "/profile/resume/download"
 RESUME_DOWNLOAD_PATH = PROFILE_RESUME_DOWNLOAD_PATH
@@ -32,6 +33,7 @@ ADMIN_DASHBOARD_STATS_PATH = "/dashboard/stats"
 
 ADMIN_PROFILE_PATH = "/profile"
 ADMIN_PROFILE_RESUME_PATH = "/profile/resume"
+ADMIN_SETTINGS_PATH = "/settings"
 
 ADMIN_PROJECTS_PATH = "/projects"
 ADMIN_PROJECT_DETAIL_PATH = "/projects/{item_id}"

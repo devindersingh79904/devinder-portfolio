@@ -28,6 +28,7 @@ from app.core.constants import (
     ADMIN_PREFIX,
     ADMIN_PROFILE_PATH,
     ADMIN_PROFILE_RESUME_PATH,
+    ADMIN_SETTINGS_PATH,
     ADMIN_PROJECT_DETAIL_PATH,
     ADMIN_PROJECTS_PATH,
     ADMIN_SKILL_DETAIL_PATH,
@@ -54,6 +55,7 @@ from app.repositories.portfolio import (
 )
 from app.repositories.profile import profile_repo
 from app.repositories.queries import contact_lead_repo, jd_query_repo
+from app.repositories.settings import get_or_create_settings, site_settings_repo
 from app.routers.deps import get_current_admin
 from app.schemas.admin import AdminLogin, DashboardStats, Token
 from app.schemas.common import APIResponse
@@ -74,6 +76,8 @@ from app.schemas.portfolio import (
     ProjectCreate,
     ProjectOut,
     ProjectUpdate,
+    SiteSettingsOut,
+    SiteSettingsUpdate,
     SkillCreate,
     SkillOut,
     SkillUpdate,
@@ -152,19 +156,31 @@ def upload_resume(
 
     return success_response(message="Resume uploaded successfully")
 
+# Site settings (feature flags)
+@router.get(ADMIN_SETTINGS_PATH, response_model=APIResponse[SiteSettingsOut])
+def get_admin_settings(db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
+    return success_response(data=get_or_create_settings(db))
+
+@router.put(ADMIN_SETTINGS_PATH, response_model=APIResponse[SiteSettingsOut])
+def update_admin_settings(settings_update: SiteSettingsUpdate, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
+    settings_row = get_or_create_settings(db)
+    updated = site_settings_repo.update(db, db_obj=settings_row, obj_in=settings_update)
+    return success_response(data=updated)
+
 # Generic CRUD generator
 def register_crud(router: APIRouter, path: str, path_detail: str, repo, out_schema, create_schema, update_schema):
     @router.get(path)
     def read_items(page: int = 0, size: int = 10, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
-        total = repo.count(db, filters={"is_active": True})
-        items = repo.get_multi(db, skip=page*size, limit=size, filters={"is_active": True})
+        # Admin sees ALL rows (active + inactive) so soft-deleted items can be re-activated.
+        total = repo.count(db)
+        items = repo.get_multi(db, skip=page*size, limit=size)
         schema_items = [out_schema.model_validate(item) for item in items]
         return success_response(data=build_pagination(schema_items, page, size, total).model_dump(by_alias=True))
-        
+
     @router.get(path_detail)
     def read_item(item_id: str, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
         item = repo.get(db, item_id)
-        if not item or not item.is_active:
+        if not item:
             raise PortfolioException("Item not found", ErrorCodes.NOT_FOUND, 404)
         return success_response(data=out_schema.model_validate(item).model_dump(by_alias=True))
 
@@ -178,7 +194,7 @@ def register_crud(router: APIRouter, path: str, path_detail: str, repo, out_sche
     @router.put(path_detail)
     def update_item(item_id: str, item_in: update_schema, db: Session = Depends(get_db), current_admin: AdminUser = Depends(get_current_admin)):
         item = repo.get(db, item_id)
-        if not item or not item.is_active:
+        if not item:
             raise PortfolioException("Item not found", ErrorCodes.NOT_FOUND, 404)
         data = item_in.model_dump(exclude_unset=True)
         data["updated_by"] = current_admin.email

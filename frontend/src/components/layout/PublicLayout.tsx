@@ -1,12 +1,20 @@
 import { useState } from "react"
 import { Outlet, Link } from "react-router-dom"
-import { ROUTES, APP_NAME } from "@/constants"
+import { useQuery } from "@tanstack/react-query"
+import { ROUTES, APP_NAME, API_ROUTES, QUERY_KEYS } from "@/constants"
+import { apiClient } from "@/services/api"
 import { Menu, X } from "lucide-react"
 import { usePageViewTracker } from "@/services/analytics"
 
 export function PublicLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   usePageViewTracker()
+
+  const { data: settingsResp } = useQuery({
+    queryKey: QUERY_KEYS.PUBLIC_SETTINGS,
+    queryFn: () => apiClient.get(API_ROUTES.SETTINGS),
+  })
+  const jdMatchEnabled: boolean = settingsResp?.data?.jdMatchEnabled ?? true
 
   const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen)
 
@@ -18,7 +26,9 @@ export function PublicLayout() {
       <Link to={ROUTES.SKILLS} onClick={() => setIsMobileMenuOpen(false)} className="transition-colors hover:text-foreground/80">Skills</Link>
       <Link to={ROUTES.EDUCATION} onClick={() => setIsMobileMenuOpen(false)} className="transition-colors hover:text-foreground/80">Education</Link>
       <Link to={ROUTES.CERTIFICATIONS} onClick={() => setIsMobileMenuOpen(false)} className="transition-colors hover:text-foreground/80">Certifications</Link>
-      <Link to={ROUTES.JD_MATCH} onClick={() => setIsMobileMenuOpen(false)} className="transition-colors hover:text-foreground/80 text-primary font-bold">JD Match</Link>
+      {jdMatchEnabled && (
+        <Link to={ROUTES.JD_MATCH} onClick={() => setIsMobileMenuOpen(false)} className="transition-colors hover:text-foreground/80 text-primary font-bold">JD Match</Link>
+      )}
       <Link to={ROUTES.CONTACT} onClick={() => setIsMobileMenuOpen(false)} className="transition-colors hover:text-foreground/80">Contact</Link>
     </>
   )

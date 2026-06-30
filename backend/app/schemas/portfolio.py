@@ -181,6 +181,15 @@ class ProfileOut(ProfileBase):
     resume_updated_at: Optional[datetime] = None
 
 # -----------------
+# SITE SETTINGS (feature flags)
+# -----------------
+class SiteSettingsOut(ORMBase):
+    jd_match_enabled: bool = True
+
+class SiteSettingsUpdate(BaseSchema):
+    jd_match_enabled: Optional[bool] = None
+
+# -----------------
 # CONTACT LEADS
 # -----------------
 class ContactLeadCreate(BaseSchema):

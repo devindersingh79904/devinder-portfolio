@@ -3,7 +3,7 @@ import { apiClient, getResumeDownloadUrl } from '@/services/api'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Helmet } from 'react-helmet-async'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { API_ROUTES } from '@/constants/apiRoutes'
 import { ROUTES } from '@/constants/routes'
 import { QUERY_KEYS } from '@/constants'
@@ -12,6 +12,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analyticsEvents'
 import type { Project, Profile } from '@/types'
 
 export function Home() {
+  const navigate = useNavigate()
   const { data: profileResp, isLoading: isProfileLoading } = useQuery({
     queryKey: QUERY_KEYS.PUBLIC_PROFILE,
     queryFn: () => apiClient.get(API_ROUTES.PROFILE)
@@ -58,7 +59,22 @@ export function Home() {
         <h2 className="text-3xl font-bold tracking-tight">Featured Projects</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.filter((p: Project) => p.isFeatured).map((p: Project) => (
-            <Card key={p.id}>
+            <Card
+              key={p.id}
+              role="link"
+              tabIndex={0}
+              className="cursor-pointer transition-shadow hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              onClick={() => {
+                trackEvent(ANALYTICS_EVENTS.PROJECT_CLICKED, undefined, { projectId: p.id, title: p.title })
+                navigate(ROUTES.PROJECT_DETAIL_BUILD(p.id))
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  navigate(ROUTES.PROJECT_DETAIL_BUILD(p.id))
+                }
+              }}
+            >
               <CardHeader>
                 <CardTitle>{p.title}</CardTitle>
                 <CardDescription className="line-clamp-3">{p.shortDescription}</CardDescription>
@@ -75,19 +91,22 @@ export function Home() {
                   <Button variant="default" className="p-0 px-4" asChild>
                     <Link
                       to={ROUTES.PROJECT_DETAIL_BUILD(p.id)}
-                      onClick={() => trackEvent(ANALYTICS_EVENTS.PROJECT_CLICKED, undefined, { projectId: p.id, title: p.title })}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        trackEvent(ANALYTICS_EVENTS.PROJECT_CLICKED, undefined, { projectId: p.id, title: p.title })
+                      }}
                     >
                       View Details
                     </Link>
                   </Button>
                   {p.liveUrl && (
                     <Button variant="link" className="p-0" asChild>
-                      <a href={p.liveUrl} target="_blank" rel="noreferrer">Live Demo &rarr;</a>
+                      <a href={p.liveUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>Live Demo &rarr;</a>
                     </Button>
                   )}
                   {p.githubUrl && (
                     <Button variant="link" className="p-0 text-muted-foreground" asChild>
-                      <a href={p.githubUrl} target="_blank" rel="noreferrer">GitHub</a>
+                      <a href={p.githubUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>GitHub</a>
                     </Button>
                   )}
                 </div>
