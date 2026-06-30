@@ -6,21 +6,27 @@ set -e
 # container resilient to a slow/restarting DB or non-compose runs.)
 echo "[entrypoint] Waiting for the database..."
 i=0
-until python -c "
+while true; do
+  # Capture the real connection error so a misconfigured DATABASE_URL (bad host,
+  # wrong password, unencoded special chars) is visible instead of a silent retry.
+  ERR=$(python -c "
 import os, sys
 import psycopg
-url = os.environ['DATABASE_URL'].replace('postgresql+psycopg://', 'postgresql://')
+url = os.environ.get('DATABASE_URL', '')
+url = url.replace('postgresql+psycopg://', 'postgresql://')
 try:
     psycopg.connect(url, connect_timeout=3).close()
 except Exception as e:
-    print(e, file=sys.stderr); sys.exit(1)
-" 2>/dev/null; do
+    print(f'{type(e).__name__}: {e}'); sys.exit(1)
+" 2>&1) && break
+
   i=$((i + 1))
   if [ "$i" -ge 30 ]; then
-    echo "[entrypoint] Database not reachable after 30 attempts; giving up." >&2
+    echo "[entrypoint] Database not reachable after 30 attempts. Last error:" >&2
+    echo "    $ERR" >&2
     exit 1
   fi
-  echo "[entrypoint] DB not ready yet (attempt $i/30); retrying in 1s..."
+  echo "[entrypoint] DB not ready (attempt $i/30): $ERR"
   sleep 1
 done
 echo "[entrypoint] Database is up."
