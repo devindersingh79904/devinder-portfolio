@@ -22,12 +22,12 @@ export function Switch({ checked, onCheckedChange, disabled, id }: SwitchProps) 
         'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         'disabled:cursor-not-allowed disabled:opacity-50',
-        checked ? 'bg-primary' : 'bg-input',
+        checked ? 'bg-primary' : 'bg-neutral-300 dark:bg-neutral-600',
       )}
     >
       <span
         className={cn(
-          'inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform',
+          'inline-block h-5 w-5 transform rounded-full bg-background shadow-md ring-1 ring-black/10 transition-transform',
           checked ? 'translate-x-5' : 'translate-x-0.5',
         )}
       />
