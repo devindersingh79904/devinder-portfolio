@@ -21,12 +21,12 @@ except Exception as e:
 " 2>&1) && break
 
   i=$((i + 1))
-  if [ "$i" -ge 30 ]; then
-    echo "[entrypoint] Database not reachable after 30 attempts. Last error:" >&2
+  if [ "$i" -ge 60 ]; then
+    echo "[entrypoint] Database not reachable after 60 attempts. Last error:" >&2
     echo "    $ERR" >&2
     exit 1
   fi
-  echo "[entrypoint] DB not ready (attempt $i/30): $ERR"
+  echo "[entrypoint] DB not ready (attempt $i/60): $ERR"
   sleep 1
 done
 echo "[entrypoint] Database is up."
